@@ -1,6 +1,7 @@
 from pydantic.dataclasses import dataclass
 from typing import Dict, List, Any
 
+# todo change
 try:
     from typing import Literal
 except ImportError:
@@ -17,7 +18,8 @@ class Request:
 
 # todo make not strict...
 # todo fix
-# @dataclass(extra='allow')
+
+
 @dataclass
 class Item:
     """
