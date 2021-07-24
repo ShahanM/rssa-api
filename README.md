@@ -9,11 +9,17 @@ example ratings schema.
 
 ## Usage
 
-To run the server, start by installing all the dependencies.
+Start by installing all the dependencies (it is recommended to use `conda`):
 
+
+|    Type     |        Location       |
+|-------------|-----------------------|
 | Algorithms  |  src/algs/lenskit.yml |
 | Server      |  requirements.txt     |
 | Testing     |  requirements.txt     |
 
-Then configure `src/config.json` and start the server with `python src/app.py`.
+Then configure `src/config.json` 
+and finally start the server with `python src/app.py`. 
+
+
 
