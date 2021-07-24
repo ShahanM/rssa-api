@@ -16,6 +16,7 @@ import json
 
 from flask import Flask, abort
 from flask import request
+from flask import render_template
 
 from compute import predict_user_topN
 from compute import predict_user_controversial_items
@@ -26,6 +27,11 @@ from compute import predict_user_no_clue_items
 from models import Rating
 
 app = Flask(__name__)
+
+
+@app.route('/')
+def show_readme():
+    return render_template('README.html')
 
 
 @app.route('/preferences', methods=['POST'])

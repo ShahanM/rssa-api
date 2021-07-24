@@ -1,0 +1,28 @@
+<h1 id="algorithms">Algorithms</h1>
+<h2 id="overview">Overview</h2>
+<p>This directory contains code for the running the recommender algorithms server. This server has been separated from the main server to isolate large dependencies. The <code>/preferences</code> endpoint accepts a series of ratings and outputs preference predictions. See <code>tests/test_ratings.json</code> for example ratings schema.</p>
+<h2 id="usage">Usage</h2>
+<p>Start by installing all the dependencies (it is recommended to use <code>conda</code>):</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type</th>
+<th>Location</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Algorithms</td>
+<td>src/algs/lenskit.yml</td>
+</tr>
+<tr class="even">
+<td>Server</td>
+<td>requirements.txt</td>
+</tr>
+<tr class="odd">
+<td>Testing</td>
+<td>requirements.txt</td>
+</tr>
+</tbody>
+</table>
+<p>Then configure <code>src/config.json</code> and finally start the server with <code>python src/app.py</code>.</p>
