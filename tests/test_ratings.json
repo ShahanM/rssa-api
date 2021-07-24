@@ -1,0 +1,85 @@
+{
+	"user_id": "Bart",
+	"ratings": [
+		{		
+			"item_id": "70286",			
+			"rating": 4	
+		},
+		{
+			"item_id": "122916",
+			"rating": 4
+		},
+		{
+			"item_id": "71624",
+			"rating": 4
+		},
+		{
+			"item_id": "2161",
+			"rating": 4
+		},
+		{
+			"item_id": "6155",
+			"rating": 2
+		},
+		{
+			"item_id": "103141",
+			"rating": 3
+		},
+		{
+			"item_id": "6586",
+			"rating": 1
+		},
+		{
+			"item_id": "778",
+			"rating": 5
+		},
+		{
+			"item_id": "59615",
+			"rating": 4
+		},
+		{
+			"item_id": "8529",
+			"rating": 4
+		},
+		{
+			"item_id": "2640",
+			"rating": 3
+		},
+		{
+			"item_id": "2915",
+			"rating": 3
+		},
+		{
+			"item_id": "34",
+			"rating": 4
+		},
+		{
+			"item_id": "4370",
+			"rating": 2
+		},
+		{
+			"item_id": "6874",
+			"rating": 5
+		},
+		{
+			"item_id": "4084",
+			"rating": 4
+		},
+		{
+			"item_id": "4369",
+			"rating": 3
+		},
+		{
+			"item_id": "171763",
+			"rating": 3
+		},
+		{
+			"item_id": "3033",
+			"rating": 5
+		},
+		{
+			"item_id": "122882",
+			"rating": 5
+		}
+	]
+}

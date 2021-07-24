@@ -1,0 +1,8 @@
+# see src/algs/lenskit.yml for algorithm requirements
+# server requirements
+flask
+pydantic
+python-dotenv
+
+# testing requirements
+requests
