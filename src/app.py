@@ -30,39 +30,37 @@ from compute import predict_user_no_clue_items
 from models import Rating
 
 from db_connectors.movie_db import MovieDB
-from db_connectors.survey_db import SurveyDB
+from db_connectors.survey_db import InvalidSurveyException, SurveyDB
+from db_connectors.db import initialize_db
 
 app = Flask(__name__)
 CORS(app)
 MOVIE_DB = ''
-USER_DB = ''
 
 @app.route('/')
 def show_readme():
     return render_template('README.html')
 
+
+""" TODO
+    Wrap this into a restful Movie resource
+    POST -> return a list of movie objects given a list of ids
+    GET  -> return a paged list of movie objects
+"""
 @app.route('/movies', methods=['GET'])
 @cross_origin(supports_credentials=True)
 def get_movies():
-    movie_db = MovieDB(MOVIE_DB)
-    print(request);
     lim = int(request.args.get("limit"))
     page = int(request.args.get("page"))
     movies = movie_db.skiplimit(lim, page)
+    
     return Response(json.dumps(movies), mimetype='application/json')
 
-
-@app.route('/movie_previews', methods=['GET'])
-def preview_movies():    
-    movie_db = MovieDB(MOVIE_DB)
-    movies = movie_db.skiplimit(50, 1)
-
-    return render_template('json_viewer.html', movies=movies)
 
 @app.route('/movies', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def get_movie_from_ids():
-    movie_db = MovieDB(MOVIE_DB)
+    # movie_db = MovieDB(MOVIE_DB)
     req = json.loads(request.data)
     idlst = req['movie_ids']
 
@@ -70,6 +68,22 @@ def get_movie_from_ids():
     return Response(json.dumps(movies), mimetype='application/json')
 
 
+""" TODO
+    This can be thrown out
+"""
+@app.route('/movie_previews', methods=['GET'])
+def preview_movies():    
+    # movie_db = MovieDB(MOVIE_DB)
+    movies = movie_db.skiplimit(50, 1)
+
+    return render_template('json_viewer.html', movies=movies)
+
+
+
+""" TODO
+    Wrap this into to a restful Recommendation resource
+    POST -> return recommendations for a userid and list of movie ratings
+"""
 @app.route('/preferences', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def predict_preferences():
@@ -81,6 +95,7 @@ def predict_preferences():
     except KeyError:
         abort(400)
 
+    # TODO Break this into conditionals to save compute cost
     # HIP - Movies you would be among the first to try
     # Double check the TopN condition (Top 20? -> left 10 -> right 10) -> "More movies you may like"
     funcs = {
@@ -97,29 +112,88 @@ def predict_preferences():
     return dict(preferences=predictions)
 
 
-@app.route('/new_user', methods=['POST'])
+""" TODO
+    Wrap this into a restful Survey resource
+    POST -> New Survey
+    GET  -> return list of Survey for authenticated user
+"""
+@app.route('/new_survey', methods=['POST'])
 @cross_origin(supports_credentials=True)
+def create_new_survey():
+
+    # TODO This should be implemented for the framework deploy
+
+    abort(401)
+
+
+""" TODO
+    Wrap this into a restful SurveyPage resource
+    POST -> New survey page for a given survey id
+    GET  -> return a list of survey pages for a given survey id
+"""
+@app.route('/new_survey_page', methods=['POST'])
+@cross_origin(supports_credentials=True)
+def create_new_page():
+
+    # TODO This is for the page building form in the framework deploy
+
+    abort(401)
+
+
+""" TODO
+    Wrap this into a restful User resource
+    POST -> create a new user at the beginning of the survey
+    PUT  -> Update entries as a user progresses through the survey
+"""
+@app.route('/new_user', methods=['POST'])
+@cross_origin()
 def create_new_user():
-    # req = json.loads(request.data)
-    # user_id = None
-    
-    # try:
-    #     user_id = req['user_id']
-    # except KeyError:
-    #     abort(400)
+    req = json.loads(request.data)
+    try:
+        welcome_time = req['welcomeTime']
+        consent_start_time = req['consentStartTime']
+        consent_end_time = req['consentEndTime']
+        user_id = survey_db.create_user(welcome_time, consent_start_time, consent_end_time)
+    except KeyError:
+        abort(400)
 
-    survey_db = SurveyDB(SURVEY_DB)
-    user_id = survey_db.create_user()
-
-    return dict({'Success': True, 'user_id': str(user_id.inserted_id)})
+    return dict({'Success': True, 'user_id': str(user_id)})
 
 
-if __name__ == '__main__':
+@app.route('/update_survey', methods=['PUT'])
+@cross_origin(supports_credentials=True)
+def update_survey():
+
+    req = json.loads(request.data)
+    user_id = None
+    survey_id = None
+    page_id = None
+
+    try:
+        survey_id = req['survey_id']
+        user_id = req['user_id']
+        page_id = req['page_id']
+    except KeyError:
+        abort(400)
+
+
+    return 200
+
+
+if __name__ == '__main__':    
     config_path = Path(__file__).parent / 'config.json'
     with open(config_path) as f:
         settings = json.load(f)
     MOVIE_DB = settings['mongo_url']
     SURVEY_DB = settings['mysql_url']
+    SURVEY_ID = settings['survey_id']
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_DATABASE_URI'] = SURVEY_DB
     
+    global survey_db
+    survey_db = SurveyDB(initialize_db(app))
+    global movie_db
+    movie_db = MovieDB(MOVIE_DB)
+
     app.run(port=settings['port'],
             debug=settings['debug'])
