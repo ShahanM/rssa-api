@@ -59,7 +59,7 @@ class SurveyDB(object):
 		return user.id
 
 
-class SuveryMeta(object):
+class SurveyMeta(object):
 	''' TODO
 		This class allows endpoints to create Surveys, SurveyPages and Questions
 	'''

@@ -11,6 +11,7 @@ outputs.
 
 """
 
+from ast import Num
 from pathlib import Path
 import json
 
@@ -53,14 +54,14 @@ def get_movies():
     lim = int(request.args.get("limit"))
     page = int(request.args.get("page"))
     movies = movie_db.skiplimit(lim, page)
-    
+
     return Response(json.dumps(movies), mimetype='application/json')
 
 
 @app.route('/movies', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def get_movie_from_ids():
-    # movie_db = MovieDB(MOVIE_DB)
+
     req = json.loads(request.data)
     idlst = req['movie_ids']
 
@@ -72,44 +73,79 @@ def get_movie_from_ids():
     This can be thrown out
 """
 @app.route('/movie_previews', methods=['GET'])
-def preview_movies():    
-    # movie_db = MovieDB(MOVIE_DB)
+def preview_movies():
+
     movies = movie_db.skiplimit(50, 1)
 
     return render_template('json_viewer.html', movies=movies)
-
 
 
 """ TODO
     Wrap this into to a restful Recommendation resource
     POST -> return recommendations for a userid and list of movie ratings
 """
-@app.route('/preferences', methods=['POST'])
+@app.route('/recommendations', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def predict_preferences():
     req = json.loads(request.data)
-    ratings = None
+
+    item_count = 7
+
+    funcs = {
+        0: ('top_n', predict_user_topN),
+        1: ('controversial', predict_user_controversial_items),
+        2: ('hate', predict_user_hate_items),
+        3: ('hip', predict_user_hip_items),
+        4: ('no_clue', predict_user_no_clue_items)
+    }
 
     try:
+        userid = req['userid']
         ratings = req['ratings']
+        ratings = [Rating(**rating) for rating in ratings]
+        condition = int(userid)%5
+        if condition == 1:
+            topn = predict_user_topN(ratings=ratings, user_id=userid, numRec=item_count*2)
+            topn = movie_db.get_movie_lst(idlist=topn)
+            prediction = {
+                'left': {
+                    'label': 'topN', 'items': topn[:item_count]
+                },
+                'right': {
+                    'label': 'moreTopN', 'items': topn[item_count:]
+                }
+            }
+        topn = predict_user_topN(ratings=ratings, user_id=userid, numRec=item_count)
+        topn = movie_db.get_movie_lst(idlist=topn)
+
+        rightitems = funcs[condition][1](ratings=ratings, user_id=userid, numRec=item_count)
+        rightitems = movie_db.get_movie_lst(idlist=rightitems)
+        prediction = {
+            'left': {
+                'label': 'topN', 'items': topn
+            },
+            'right': {
+                'label': funcs[condition][0],
+                'items': rightitems
+            }
+        }
     except KeyError:
         abort(400)
 
     # TODO Break this into conditionals to save compute cost
     # HIP - Movies you would be among the first to try
     # Double check the TopN condition (Top 20? -> left 10 -> right 10) -> "More movies you may like"
-    funcs = {
-        'top_n': predict_user_topN,
-        'controversial': predict_user_controversial_items,
-        'hate': predict_user_hate_items,
-        'hip': predict_user_hip_items,
-        'no_clue': predict_user_no_clue_items
-    }
+    # funcs = {
+    #     'top_n': predict_user_topN,
+    #     'controversial': predict_user_controversial_items,
+    #     'hate': predict_user_hate_items,
+    #     'hip': predict_user_hip_items,
+    #     'no_clue': predict_user_no_clue_items
+    # }
 
-    ratings = [Rating(**rating) for rating in ratings]
-    predictions = {k: f(ratings=ratings, user_id=0) for k, f in funcs.items()}
+    # predictions = {k: f(ratings=ratings, user_id=0) for k, f in funcs.items()}
 
-    return dict(preferences=predictions)
+    return dict(recommendations=prediction)
 
 
 """ TODO
