@@ -9,6 +9,9 @@ testing_rating_rated_items_extracted
 /scripts
 todo
 
+#config files
+config.json
+
 
 
 ### JetBrains template
