@@ -29,15 +29,15 @@ def get_predictions(ratings: List[Rating], user_id) -> pd.DataFrame:
     return RSSA_preds_noRatedItems     
 
 
-def predict_user_topN(ratings: List[Rating], user_id) -> List[Preference]:
-    numRec = 10
+def predict_user_topN(ratings: List[Rating], user_id, numRec=10) -> List[Preference]:
+    # numRec = 10
     RSSA_preds_noRatedItems = get_predictions(ratings, user_id)
-        # ['item', 'score', 'count', 'rank', 'discounted_score']
+    # ['item', 'score', 'count', 'rank', 'discounted_score']
     traditional_preds_sorted = RSSA_preds_noRatedItems.sort_values(by = 'score', ascending = False)
     discounted_preds_sorted = RSSA_preds_noRatedItems.sort_values(by = 'discounted_score', ascending = False)
     recs_topN_traditional = traditional_preds_sorted.head(numRec)
     recs_topN_discounted = discounted_preds_sorted.head(numRec)
-     
+    
     recommendations = []
     for index, row in recs_topN_discounted.iterrows():
         # recommendations.append(Preference(str(np.int64(row['item'])), 'top_n'))
@@ -45,8 +45,8 @@ def predict_user_topN(ratings: List[Rating], user_id) -> List[Preference]:
         
     return recommendations
 
-def predict_user_hate_items(ratings: List[Rating], user_id) -> List[Preference]:
-    numRec = 10
+def predict_user_hate_items(ratings: List[Rating], user_id, numRec=10) -> List[Preference]:
+    # numRec = 10
     RSSA_preds_noRatedItems = get_predictions(ratings, user_id)
         # ['item', 'score', 'count', 'rank', 'discounted_score']
     data_path = './algs/data/'
@@ -68,8 +68,8 @@ def predict_user_hate_items(ratings: List[Rating], user_id) -> List[Preference]:
     return recommendations
     
     
-def predict_user_hip_items(ratings: List[Rating], user_id) -> List[Preference]:
-    numRec = 10
+def predict_user_hip_items(ratings: List[Rating], user_id, numRec=10) -> List[Preference]:
+    # numRec = 10
     RSSA_preds_noRatedItems = get_predictions(ratings, user_id)
         # ['item', 'score', 'count', 'rank', 'discounted_score']
     numTopN = 1000    
@@ -90,11 +90,12 @@ def predict_user_hip_items(ratings: List[Rating], user_id) -> List[Preference]:
     return recommendations
     
     
-def predict_user_no_clue_items(ratings: List[Rating], user_id) -> List[Preference]:
+def predict_user_no_clue_items(ratings: List[Rating], user_id, numRec=10) -> List[Preference]:
+    # numRec = 10
+    
     new_ratings = pd.Series(rating.rating for rating in ratings)
     rated_items = np.array([np.int64(rating.item_id) for rating in ratings])
 
-    numRec = 10
     data_path = './algs/data/'
     item_popularity = pd.read_csv(data_path + 'item_popularity.csv') 
     model_path = './algs/model/'
@@ -112,11 +113,12 @@ def predict_user_no_clue_items(ratings: List[Rating], user_id) -> List[Preferenc
     return recommendations
     
     
-def predict_user_controversial_items(ratings: List[Rating], user_id) -> List[Preference]:
+def predict_user_controversial_items(ratings: List[Rating], user_id, numRec=10) -> List[Preference]:
+    # numRec = 10
+
     new_ratings = pd.Series(rating.rating for rating in ratings)
     rated_items = np.array([np.int64(rating.item_id) for rating in ratings])
 
-    numRec = 10
     data_path = './algs/data/'
     item_popularity = pd.read_csv(data_path + 'item_popularity.csv') 
     model_path = './algs/model/'
