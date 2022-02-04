@@ -26,6 +26,7 @@ class MovieDB(object):
 			del x['_id']
 			x['title_year'] = x['title(year)']
 			del x['title(year)']
+			x['rating'] = 0
 			result_lst.append(x)
 		
 		return result_lst
