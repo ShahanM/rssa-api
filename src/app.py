@@ -92,11 +92,11 @@ def predict_preferences():
     item_count = 7
 
     funcs = {
-        0: ('top_n', predict_user_topN),
-        1: ('controversial', predict_user_controversial_items),
-        2: ('hate', predict_user_hate_items),
-        3: ('hip', predict_user_hip_items),
-        4: ('no_clue', predict_user_no_clue_items)
+        0: ('top_n', predict_user_topN, 'Movies You May Like'),
+        1: ('controversial', predict_user_controversial_items, 'Controversial'),
+        2: ('hate', predict_user_hate_items, 'Movies Your May Hate'),
+        3: ('hip', predict_user_hip_items, 'Movies You May Be Among the First to Try '),
+        4: ('no_clue', predict_user_no_clue_items, 'Movies We Have No Idea About')
     }
 
     try:
@@ -104,31 +104,36 @@ def predict_preferences():
         ratings = req['ratings']
         ratings = [Rating(**rating) for rating in ratings]
         condition = int(userid)%5
-        if condition == 1:
+        if condition == 0:
             topn = predict_user_topN(ratings=ratings, user_id=userid, numRec=item_count*2)
             topn = movie_db.get_movie_lst(idlist=topn)
             prediction = {
+                # topN
                 'left': {
-                    'label': 'topN', 'items': topn[:item_count]
+                    'label': 'Movies You May Like', 'items': topn[:item_count]
                 },
+                # moreTopN
                 'right': {
-                    'label': 'moreTopN', 'items': topn[item_count:]
+                    'label': 'More Movies You May Like', 'items': topn[item_count:]
                 }
             }
-        topn = predict_user_topN(ratings=ratings, user_id=userid, numRec=item_count)
-        topn = movie_db.get_movie_lst(idlist=topn)
+        else:
+            topn = predict_user_topN(ratings=ratings, user_id=userid, numRec=item_count)
+            topn = movie_db.get_movie_lst(idlist=topn)
 
-        rightitems = funcs[condition][1](ratings=ratings, user_id=userid, numRec=item_count)
-        rightitems = movie_db.get_movie_lst(idlist=rightitems)
-        prediction = {
-            'left': {
-                'label': 'topN', 'items': topn
-            },
-            'right': {
-                'label': funcs[condition][0],
-                'items': rightitems
+            rightitems = funcs[condition][1](ratings=ratings, user_id=userid, numRec=item_count)
+            rightitems = movie_db.get_movie_lst(idlist=rightitems)
+            prediction = {
+                # topN
+                'left': {
+                    'label': 'Movies You May Like', 'items': topn
+                },
+                # Condition specific messaging
+                'right': {
+                    'label': funcs[condition][2],
+                    'items': rightitems
+                }
             }
-        }
     except KeyError:
         abort(400)
 
