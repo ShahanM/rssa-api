@@ -93,10 +93,13 @@ def predict_preferences():
 
     funcs = {
         0: ('top_n', predict_user_topN, 'Movies You May Like'),
-        1: ('controversial', predict_user_controversial_items, 'Controversial'),
+        1: ('controversial', predict_user_controversial_items, \
+            'Controversial'),
         2: ('hate', predict_user_hate_items, 'Movies Your May Hate'),
-        3: ('hip', predict_user_hip_items, 'Movies You May Be Among the First to Try '),
-        4: ('no_clue', predict_user_no_clue_items, 'Movies We Have No Idea About')
+        3: ('hip', predict_user_hip_items, \
+            'Movies You May Be Among the First to Try '),
+        4: ('no_clue', predict_user_no_clue_items, \
+            'Movies We Have No Idea About')
     }
 
     try:
@@ -105,7 +108,8 @@ def predict_preferences():
         ratings = [Rating(**rating) for rating in ratings]
         condition = int(userid)%5
         if condition == 0:
-            topn = predict_user_topN(ratings=ratings, user_id=userid, numRec=item_count*2)
+            topn = predict_user_topN(ratings=ratings, user_id=userid, \
+                numRec=item_count*2)
             topn = movie_db.get_movie_lst(idlist=topn)
             prediction = {
                 # topN
@@ -114,14 +118,17 @@ def predict_preferences():
                 },
                 # moreTopN
                 'right': {
-                    'label': 'More Movies You May Like', 'items': topn[item_count:]
+                    'label': 'More Movies You May Like', \
+                        'items': topn[item_count:]
                 }
             }
         else:
-            topn = predict_user_topN(ratings=ratings, user_id=userid, numRec=item_count)
+            topn = predict_user_topN(ratings=ratings, user_id=userid, \
+                numRec=item_count)
             topn = movie_db.get_movie_lst(idlist=topn)
 
-            rightitems = funcs[condition][1](ratings=ratings, user_id=userid, numRec=item_count)
+            rightitems = funcs[condition][1](ratings=ratings, user_id=userid, \
+                numRec=item_count)
             rightitems = movie_db.get_movie_lst(idlist=rightitems)
             prediction = {
                 # topN
@@ -190,35 +197,51 @@ def create_new_page():
 @cross_origin()
 def create_new_user():
     req = json.loads(request.data)
+    # survey_id = None
     try:
+        # survey_id = req['survey_id']
         welcome_time = req['welcomeTime']
         consent_start_time = req['consentStartTime']
         consent_end_time = req['consentEndTime']
-        user_id = survey_db.create_user(welcome_time, consent_start_time, consent_end_time)
+        user_id = survey_db.create_user(welcome_time, consent_start_time, \
+            consent_end_time)
     except KeyError:
         abort(400)
 
     return dict({'Success': True, 'user_id': str(user_id)})
 
 
-@app.route('/update_survey', methods=['PUT'])
+@app.route('/add_survey_response', methods=['PUT'])
 @cross_origin(supports_credentials=True)
 def update_survey():
 
     req = json.loads(request.data)
-    user_id = None
-    survey_id = None
+    # survey_id = None
     page_id = None
+    user_id = None
+    page_starttime = None
+    page_endtime = None
+
+    response_params = None
 
     try:
-        survey_id = req['survey_id']
-        user_id = req['user_id']
-        page_id = req['page_id']
-    except KeyError:
+        # survey_id = req['survey_id']
+        page_id = req['pageid']
+        user_id = req['userid']
+        page_starttime = req['starttime']
+        page_endtime = req['endtime']
+
+        response_params = req['response']
+
+        user_id = survey_db.add_survey_reponse(user_id=user_id, \
+            survey_pageid=page_id, starttime=page_starttime, \
+                endtime=page_endtime, response_params=response_params)
+    except KeyError as e:
+        print(e)
         abort(400)
 
 
-    return 200
+    return dict({'Sucess': True, 'user_id': str(user_id)})
 
 
 if __name__ == '__main__':    
