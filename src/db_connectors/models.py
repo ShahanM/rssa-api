@@ -27,6 +27,7 @@ user_response = db.Table('user_response',
 
 class User(db.Model):
 	__tablename__ = 'user'
+	salt = 144
 
 	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), \
 		nullable=False)
@@ -41,7 +42,6 @@ class User(db.Model):
 
 	def __repr__(self) -> str:
 		return '<User %r>' % self.id
-
 
 class SurveyPage(db.Model):
 	__tablename__ = 'survey_page'
@@ -133,5 +133,5 @@ class Rating(db.Model):
 	item_id = db.Column(db.Integer, nullable=False)
 	rating = db.Column(db.Integer, nullable=False)
 
-	survey_reponse = db.Column(db.Integer, db.ForeignKey('survey_response.id'), \
+	survey_response = db.Column(db.Integer, db.ForeignKey('survey_response.id'), \
 		nullable=False)

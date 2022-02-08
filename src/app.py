@@ -14,6 +14,7 @@ outputs.
 from ast import Num
 from pathlib import Path
 import json
+import re
 
 from flask import Flask, abort
 from flask import request
@@ -95,7 +96,7 @@ def predict_preferences():
         0: ('top_n', predict_user_topN, 'Movies You May Like'),
         1: ('controversial', predict_user_controversial_items, \
             'Controversial'),
-        2: ('hate', predict_user_hate_items, 'Movies Your May Hate'),
+        2: ('hate', predict_user_hate_items, 'Movies You May Hate'),
         3: ('hip', predict_user_hip_items, \
             'Movies You May Be Among the First to Try '),
         4: ('no_clue', predict_user_no_clue_items, \
@@ -217,12 +218,12 @@ def update_survey():
 
     req = json.loads(request.data)
     # survey_id = None
-    page_id = None
-    user_id = None
-    page_starttime = None
-    page_endtime = None
+    # page_id = None
+    # user_id = None
+    # page_starttime = None
+    # page_endtime = None
 
-    response_params = None
+    # response_params = None
 
     try:
         # survey_id = req['survey_id']
@@ -242,6 +243,29 @@ def update_survey():
 
 
     return dict({'Sucess': True, 'user_id': str(user_id)})
+
+
+@app.route('/completionCode', methods=['POST'])
+@cross_origin(supports_credentials=True)
+def get_completion_code():
+    
+    req = json.loads(request.data)
+
+    try:
+        page_id = req['pageid']
+        user_id = req['userid']
+        requesttime = req['requestime']
+        completed = req['completed']
+
+        user_code = survey_db.get_user_code(user_id=user_id, \
+            survey_pageid=page_id, requesttime=requesttime, \
+                completed=completed)
+
+    except KeyError as e:
+        print(e)
+        abort(400)
+
+    return dict({'user_code': str(user_code)})
 
 
 if __name__ == '__main__':    
