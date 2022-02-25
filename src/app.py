@@ -23,6 +23,8 @@ from flask import Response
 
 from flask_cors import CORS, cross_origin
 
+from compute_mod.community import get_discrete_continuous_coupled
+
 from compute import predict_user_topN
 from compute import predict_user_controversial_items
 from compute import predict_user_hate_items
@@ -42,6 +44,14 @@ MOVIE_DB = ''
 @app.route('/')
 def show_readme():
     return render_template('README.html')
+
+
+@app.route('/disc_cont_coupled', methods=['GET'])
+@cross_origin(supports_credentials=True)
+def get_discrete_cont_coupled():
+    data = get_discrete_continuous_coupled()
+
+    return Response(json.dumps(data), mimetype='application/json')
 
 
 """ TODO
@@ -93,12 +103,12 @@ def predict_preferences():
     item_count = 7
 
     funcs = {
-        0: ('top_n', predict_user_topN, 'Movies You May Like'),
+        0: ('top_n', predict_user_topN, 'Movies We Think You May Like'),
         1: ('controversial', predict_user_controversial_items, \
-            'Controversial'),
-        2: ('hate', predict_user_hate_items, 'Movies You May Hate'),
+            'Movies We Think are Controversial to Your Preference'),
+        2: ('hate', predict_user_hate_items, 'Movies We Think You May Hate'),
         3: ('hip', predict_user_hip_items, \
-            'Movies You May Be Among the First to Try '),
+            'Movies You We Think May Be Among the First to Try '),
         4: ('no_clue', predict_user_no_clue_items, \
             'Movies We Have No Idea About')
     }
@@ -115,11 +125,11 @@ def predict_preferences():
             prediction = {
                 # topN
                 'left': {
-                    'label': 'Movies You May Like', 'items': topn[:item_count]
+                    'label': 'Movies We Think You May Like', 'items': topn[:item_count]
                 },
                 # moreTopN
                 'right': {
-                    'label': 'More Movies You May Like', \
+                    'label': 'More Movies We Think You May Like', \
                         'items': topn[item_count:]
                 }
             }

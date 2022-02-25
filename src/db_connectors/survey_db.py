@@ -1,4 +1,3 @@
-
 from datetime import datetime
 import hashlib
 
@@ -22,8 +21,6 @@ class InvalidRequestException(Exception):
 
 
 class SurveyDB(object):
-
-
 	def __init__(self, db, survey_id=1):
 		self.db = db
 		self.survey_id = survey_id
@@ -148,9 +145,11 @@ class SurveyDB(object):
 		userhash = hashlib.md5(userstr.encode('utf8'))
 
 		return str(userhash.digest()[3]) + ' ' + str(userhash.digest()[9])
+		
 
 class SurveyMeta(object):
 	''' TODO
 		This class allows endpoints to create Surveys, SurveyPages and Questions
 	'''
 	pass
+

@@ -36,7 +36,7 @@ with app.app_context():
 		'Post Survey Page 3', 'Post Survey Page 4', 'Post Survey Page 5', 'Post Survey Page 6', \
 		'Ending']
 	page_type = ['welcome', 'consent_form', 'summary', 'rating', 'rating', 'rating', 'likert_form', \
-		'likert_form', 'likert_form', 'likert_form', 'likert_form', 'likert_form', 'ending']
+		'likert_form', 'likert_form', 'likert_form', 'likert_form', 'likert_form', 'likert_form', 'ending']
 
 	survey_pages = []
 	for pnum, (ptitle, ptype) in enumerate(zip(pages, page_type), 1):
