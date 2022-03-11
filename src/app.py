@@ -311,6 +311,26 @@ def update_survey():
     return dict({'Sucess': True, 'user_id': str(user_id)})
 
 
+@app.route('/sync_movement', methods=['PUT'])
+@cross_origin(supports_credentials=True)
+def sync_mouse_movement():
+
+    req = json.loads(request.data)
+
+    try:
+        activity = req['mouseActivity']
+        userid = req['userid']
+        pageid = req['pageid']
+        page_width = req['pageWidth']
+        page_height = req['pageHeight']
+
+        survey_db.sync_activity(userid, page_width, page_height, pageid, activity)
+    except KeyError as e:
+        abort(400)
+
+    return dict({'Success': True})
+
+
 @app.route('/completionCode', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def get_completion_code():
