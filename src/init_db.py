@@ -19,7 +19,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 print('Initializing Database at {}'.format(SURVEY_DB))
 db.init_app(app)
-from db_connectors.models import *
+from db_connectors.models.survey import *
 with app.app_context():
 	print('Dropping all existing tables.')
 	db.drop_all()
@@ -46,4 +46,15 @@ with app.app_context():
 
 	db.session.add_all(survey_pages)
 	db.session.flush()
+
+	conditions = ['Top N', 'Controversial', 'Hate', 'Hip', 'No Clue']
+	survey_conds = []
+	for cond in conditions:
+		print('Adding experimental condition', cond)
+		condition = Condition(condition_desc=cond)
+		survey_conds.append(condition)
+
+	db.session.add_all(survey_conds)
+	db.session.flush()
+
 	db.session.commit()
