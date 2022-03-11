@@ -5,6 +5,9 @@ app.py
 Aru Bhoop. Algorithms by Lijie Guo.
 Clemson University. 7.27.2021.
 
+Rewritten by Shahan (Mehtab Iqbal)
+Clemson University.
+
 Server for running the recommender algorithms. See
 `models.py` for information about the input and
 outputs.
@@ -13,33 +16,63 @@ outputs.
 
 from ast import Num
 from pathlib import Path
-import json
+# import json
 import re
 
-from flask import Flask, abort
+import time
+from urllib import response
+
+from flask import Flask, abort, jsonify, json
 from flask import request
 from flask import render_template
 from flask import Response
 
 from flask_cors import CORS, cross_origin
 
-from compute_mod.community import get_discrete_continuous_coupled
+from compute.community import get_discrete_continuous_coupled
+from compute.rssa import RSSACompute
 
-from compute import predict_user_topN
-from compute import predict_user_controversial_items
-from compute import predict_user_hate_items
-from compute import predict_user_hip_items
-from compute import predict_user_no_clue_items
+from compute_old import predict_user_topN
+from compute_old import predict_user_controversial_items
+from compute_old import predict_user_hate_items
+from compute_old import predict_user_hip_items
+from compute_old import predict_user_no_clue_items
 
 from models import Rating
 
+from utils.json_utils import RssaJsonEncoder
+
 from db_connectors.movie_db import MovieDB
 from db_connectors.survey_db import InvalidSurveyException, SurveyDB
-from db_connectors.db import initialize_db
+from db_connectors.new_movie_db import NewMovieDB
+from db_connectors.db import initialize_db, db
+# from db_connectors.db import initialize_db as initialize_surveydb
+# from db_connectors.models.movie import initialize_db as initialize_moviedb
 
 app = Flask(__name__)
 CORS(app)
-MOVIE_DB = ''
+app.json_encoder = RssaJsonEncoder
+survey_db = None
+movie_db = None
+
+with open('config.json') as f:
+    settings = json.load(f)
+MOVIE_DB = settings['mongo_url']
+NEW_MOVIE_DB = settings['postgres_url']
+SURVEY_DB = settings['mysql_url']
+SURVEY_ID = settings['survey_id']
+SQLALCHEMY_BINDS = {
+    'postgres': NEW_MOVIE_DB
+}
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = SURVEY_DB
+app.config['SQLALCHEMY_BINDS'] = SQLALCHEMY_BINDS
+
+survey_db = SurveyDB(initialize_db(app))
+new_movie_db = NewMovieDB(db)
+movie_db = MovieDB(MOVIE_DB)
+
+rssa = RSSACompute()
 
 @app.route('/')
 def show_readme():
@@ -278,20 +311,7 @@ def get_completion_code():
     return dict({'user_code': str(user_code)})
 
 
-if __name__ == '__main__':    
-    config_path = Path(__file__).parent / 'config.json'
-    with open(config_path) as f:
-        settings = json.load(f)
-    MOVIE_DB = settings['mongo_url']
-    SURVEY_DB = settings['mysql_url']
-    SURVEY_ID = settings['survey_id']
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SQLALCHEMY_DATABASE_URI'] = SURVEY_DB
-    
-    global survey_db
-    survey_db = SurveyDB(initialize_db(app))
-    global movie_db
-    movie_db = MovieDB(MOVIE_DB)
-
+if __name__ == '__main__':
+    # host='0.0.0.0'
     app.run(port=settings['port'],
             debug=settings['debug'])
