@@ -73,7 +73,7 @@ class SurveyDB(object):
 	def get_condition_for_user(self, userid:int) -> int:
 		user = User.query.filter_by(id=userid).first()
 		
-		return user.condition.id - 1
+		return user.condition - 1
 
 	def add_survey_reponse(self, user_id, survey_pageid, starttime, endtime, \
 		response_params):
