@@ -35,3 +35,4 @@ class MovieDB(object):
 		cursor = self.get_database()['movies'].find({'movie_id': {'$in': idlist}})
 
 		return self.__sanitize_movie_list(cursor)
+		

@@ -1,7 +1,8 @@
 from datetime import datetime
 import hashlib
+from pathlib import Path
 
-from .models import Survey, SurveyQuestion, SurveyResponse, User, \
+from .models.survey import SeenItem, Survey, SurveyQuestion, SurveyResponse, User, \
 	Rating, Score
 
 
@@ -21,10 +22,12 @@ class InvalidRequestException(Exception):
 
 
 class SurveyDB(object):
-	def __init__(self, db, survey_id=1):
+	def __init__(self, db, survey_id=1, activity_base_path=None):
 		self.db = db
 		self.survey_id = survey_id
 		self.parse_datetime = lambda dtstr: datetime.strptime(dtstr, "%a, %d %b %Y %H:%M:%S %Z")
+		self.activty_base_path = 'user_interaction_data/' if \
+			activity_base_path is None else activity_base_path
 
 	def get_database(self):
 		return self.db
@@ -38,7 +41,10 @@ class SurveyDB(object):
 	def create_user(self, welcome_time, consent_start_time, consent_end_time):
 		survey_pages = self._get_survey_pages()
 
-		user = User(survey_id=self.survey_id)
+		conditionPicker = ConditionPicker()
+
+		user = User(survey_id=self.survey_id, \
+			condition=conditionPicker.get_condition_index())
 		self.db.session.add(user)
 		self.db.session.flush()
 
@@ -125,7 +131,27 @@ class SurveyDB(object):
 
 		return question
 
-	def get_user_code(self, user_id, survey_pageid, requesttime, completed=False):
+	def movies_seen(self, userid:int) -> list:
+		seen = SeenItem.query.filter_by(user_id=userid).all()
+		# print(seen)
+		return seen
+
+	def update_movies_seen(self, movies:list, userid:int, page_id:int) -> None:
+
+		seenmovies = [movie['id'] for movie in movies]
+		seenitems = SeenItem.query.filter(SeenItem.id.in_(seenmovies)).all()
+		seenids = [seenid.item_id for seenid in seenitems]
+		print(seenids)
+
+		newitems = [SeenItem(item_id=movieid, user_id=userid, page=page_id) \
+			for movieid in seenmovies if movieid not in seenids]
+		
+		self.db.session.add_all(newitems)
+		self.db.session.flush()
+		self.db.session.commit()
+
+	def get_user_code(self, user_id:int, survey_pageid:int, requesttime:str, \
+		completed=False) -> str:
 		if completed == False:
 			raise InvalidRequestException
 		
@@ -145,7 +171,43 @@ class SurveyDB(object):
 		userhash = hashlib.md5(userstr.encode('utf8'))
 
 		return str(userhash.digest()[3]) + ' ' + str(userhash.digest()[9])
+
+	def add_user_interaction(self, userid:int, pageid:int, action:str, \
+		target:int, time) -> None:
+		pass
+
+	def sync_activity(self, userid:int, page_width:int, page_height:int, \
+		page_id:int, activity_data:list) -> None:
+
+		# activity_base_path = 'user_interaction_data/'
+		Path(self.activity_base_path + str(userid)).mkdir(parents=True, exist_ok=True)
+		orderedkeys = ['clientX', 'clientY', 'pageX', 'pageY', 'timestamp']
+		with open(self.activity_base_path + str(userid) + '/' + str(page_id) + \
+			'.csv', 'w') as f:
+			f.write(','.join(orderedkeys))
+			f.write('\n')
+			for line in activity_data:
+				f.write(','.join([str(line[key]) for key in orderedkeys]))
+				f.write('\n')
 		
+
+class Borg:
+    __shared_state = {}
+    def __init__(self):
+        self.__dict__ = self.__shared_state
+
+
+class ConditionPicker(Borg):
+	idx = 0
+	def __init__(self):
+		super().__init__()
+
+	@classmethod
+	def get_condition_index(cls):
+		if cls.idx == 5: cls.idx = 0
+		cls.idx += 1
+		return cls.idx 
+
 
 class SurveyMeta(object):
 	''' TODO
