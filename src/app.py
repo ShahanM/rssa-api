@@ -57,6 +57,7 @@ movie_db = None
 
 with open('config.json') as f:
     settings = json.load(f)
+ACTIVITY_BASE = settings['activity_base_path']
 MOVIE_DB = settings['mongo_url']
 NEW_MOVIE_DB = settings['postgres_url']
 SURVEY_DB = settings['mysql_url']
@@ -68,7 +69,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = SURVEY_DB
 app.config['SQLALCHEMY_BINDS'] = SQLALCHEMY_BINDS
 
-survey_db = SurveyDB(initialize_db(app))
+survey_db = SurveyDB(initialize_db(app), activity_base_path=ACTIVITY_BASE)
 new_movie_db = NewMovieDB(db)
 movie_db = MovieDB(MOVIE_DB)
 
