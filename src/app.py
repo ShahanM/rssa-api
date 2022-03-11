@@ -124,8 +124,12 @@ def get_movies_for_user():
             for seenpage in seen.values():
                 seenflat.extend(seenpage)
             movies = new_movie_db.get_movies(lim, gallerypage, seenflat)
-            survey_db.update_movies_seen(movies, userid, surveypageid, \
+            
+            survey_db.update_movies_seen(movies[:lim], userid, surveypageid, \
                 gallerypage)
+            survey_db.update_movies_seen(movies[lim:], userid, surveypageid, \
+                gallerypage)
+
         else:
             print('This page was already generated, don\'t need to rebuild.')
             movies = new_movie_db.get_movie_from_list(\
