@@ -1,6 +1,7 @@
 from datetime import datetime
 import hashlib
 from pathlib import Path
+from collections import defaultdict
 
 from .models.survey import SeenItem, Survey, SurveyQuestion, SurveyResponse, User, \
 	Rating, Score
@@ -26,7 +27,7 @@ class SurveyDB(object):
 		self.db = db
 		self.survey_id = survey_id
 		self.parse_datetime = lambda dtstr: datetime.strptime(dtstr, "%a, %d %b %Y %H:%M:%S %Z")
-		self.activty_base_path = 'user_interaction_data/' if \
+		self.activity_base_path = 'user_interaction_data/' if \
 			activity_base_path is None else activity_base_path
 
 	def get_database(self):
@@ -68,6 +69,11 @@ class SurveyDB(object):
 		self.db.session.commit()
 
 		return user.id
+	
+	def get_condition_for_user(self, userid:int) -> int:
+		user = User.query.filter_by(id=userid).first()
+		
+		return user.condition.id - 1
 
 	def add_survey_reponse(self, user_id, survey_pageid, starttime, endtime, \
 		response_params):
@@ -131,19 +137,28 @@ class SurveyDB(object):
 
 		return question
 
-	def movies_seen(self, userid:int) -> list:
+	def movies_seen(self, userid:int) -> dict:
 		seen = SeenItem.query.filter_by(user_id=userid).all()
-		# print(seen)
-		return seen
 
-	def update_movies_seen(self, movies:list, userid:int, page_id:int) -> None:
+		seen_dict = defaultdict(list)
+		if len(seen) > 0:
+			for seenitem in seen:
+				seen_dict[seenitem.gallerypagenum].append(seenitem)
+			# seen_dict = {seenitem.gallerypagenum: seenitem for seenitem in seen}
+		else:
+			seen_dict = {0: seen}
+
+		return seen_dict
+
+	def update_movies_seen(self, movies:list, userid:int, page_id:int, \
+		gallerypage:int) -> None:
 
 		seenmovies = [movie['id'] for movie in movies]
 		seenitems = SeenItem.query.filter(SeenItem.id.in_(seenmovies)).all()
 		seenids = [seenid.item_id for seenid in seenitems]
-		print(seenids)
 
-		newitems = [SeenItem(item_id=movieid, user_id=userid, page=page_id) \
+		newitems = [SeenItem(item_id=movieid, user_id=userid, page=page_id, \
+			gallerypagenum=gallerypage)
 			for movieid in seenmovies if movieid not in seenids]
 		
 		self.db.session.add_all(newitems)

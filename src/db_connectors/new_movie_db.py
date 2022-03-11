@@ -43,44 +43,62 @@ class NewMovieDB(object):
 			page_num += i
 			page_num = 5 if page_num > 5 else page_num
 			items_to_send.extend(self._generate_page(lim, \
-				sampling_weights=page_dist[page_num], seen=seen))
+				sampling_weights=page_dist[page_num], seen=seen, \
+					pagenum=page_num))
 		print(self._generate_page.cache_info())
 		return items_to_send
 
 
 	@functools.lru_cache(maxsize=32)
-	def _generate_page(self,  lim: int, sampling_weights: tuple, seen: tuple) -> list:
+	def _generate_page(self,  lim: int, sampling_weights: tuple, seen: tuple, \
+		pagenum:int) -> list:
 		page_items = set()
 		seen = set(seen)
-
+		print('Building page for user')
 		for group, count in enumerate(sampling_weights, 1):
 			if count == 0: continue
 			random_buckets = random.choices(range(1, 7), \
 				weights=[75, 65, 50, 40, 30, 25], k=count)
 			for bucket in random_buckets:
 				item = None
+				trialcount = 0
 				while item is None:
 					item = Movie.query.filter_by(rank_group=group, \
 						year_bucket=bucket)\
 						.order_by(func.random()).limit(1).first()
-					if item is None:
-						print(group, bucket)
+					if item is None or trialcount > 5:
+						print('Could not find movie in bucket {} with {} \
+							tries. Moving to next bucket.'\
+								.format(bucket, trialcount))
 						bucket += 1
 						continue
 					if item not in page_items and item not in seen:
 						page_items.add(item)
+					else:
+						trialcount += 1
 		else:
-			if len(page_items) < 15:
+			if len(page_items) < lim:
 				excludelst = [itm.id for itm in page_items.union(seen)]
 				item = Movie.query.filter(Movie.id.notin_(excludelst))\
 					.order_by(func.random())\
-						.limit(15 - len(page_items)).all()
+						.limit(lim - len(page_items)).all()
 				page_items.update(item)
 				
+		return self._prep_to_send(page_items)
+
+	
+	def get_movie_from_list(self, movieids: list) -> list:
+		movies = Movie.query.filter(Movie.id.in_(movieids)).all()
+
+		return self._prep_to_send(movies)
+		
+
+	def _prep_to_send(self, movielist):
 		items = []
-		for page_item in page_items:
+		for page_item in movielist:
 			item = asdict(page_item)
 			item['rating'] = 0
 			item['movie_id'] = str(item['movie_id'])
 			items.append(item)
+		
 		return items

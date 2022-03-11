@@ -14,40 +14,27 @@ outputs.
 
 """
 
+import re
+import time
 from ast import Num
 from pathlib import Path
-# import json
-import re
-
-import time
 from urllib import response
 
-from flask import Flask, abort, jsonify, json
-from flask import request
-from flask import render_template
-from flask import Response
-
+from flask import (Flask, Response, abort, json, jsonify, render_template,
+                   request)
 from flask_cors import CORS, cross_origin
 
 from compute.community import get_discrete_continuous_coupled
 from compute.rssa import RSSACompute
-
-from compute_old import predict_user_topN
-from compute_old import predict_user_controversial_items
-from compute_old import predict_user_hate_items
-from compute_old import predict_user_hip_items
-from compute_old import predict_user_no_clue_items
-
-from models import Rating
-
-from utils.json_utils import RssaJsonEncoder
-
+from compute_old import (predict_user_controversial_items,
+                         predict_user_hate_items, predict_user_hip_items,
+                         predict_user_no_clue_items, predict_user_topN)
+from db_connectors.db import db, initialize_db
 from db_connectors.movie_db import MovieDB
-from db_connectors.survey_db import InvalidSurveyException, SurveyDB
 from db_connectors.new_movie_db import NewMovieDB
-from db_connectors.db import initialize_db, db
-# from db_connectors.db import initialize_db as initialize_surveydb
-# from db_connectors.models.movie import initialize_db as initialize_moviedb
+from db_connectors.survey_db import InvalidSurveyException, SurveyDB
+from models import Rating
+from utils.json_utils import RssaJsonEncoder
 
 app = Flask(__name__)
 CORS(app)
@@ -123,15 +110,23 @@ def get_movies_two():
 @cross_origin(supports_credentials=True)
 def get_movies_for_user():
     req = json.loads(request.data)
-    print(req)
     try:
         userid = req['userid']
-        page_id = req['pageid']
+        surveypageid = req['pageid']
         lim = req['limit']
-        page = req['page']
+        gallerypage = req['page']
         seen = survey_db.movies_seen(userid)
-        movies = new_movie_db.get_movies(lim, page, seen)
-        survey_db.update_movies_seen(movies, userid, page_id)
+        movies: list
+        loadedpages = seen.keys()
+        if 0 in loadedpages or gallerypage not in loadedpages:
+            print('Sending request to movie database.')
+            movies = new_movie_db.get_movies(lim, gallerypage, seen[0])
+            survey_db.update_movies_seen(movies, userid, surveypageid, \
+                gallerypage)
+        else:
+            print('This page was already generated, don\'t need to rebuild.')
+            movies = new_movie_db.get_movie_from_list(\
+                [seenitem.id for seenitem in seen[gallerypage]])
     except KeyError:
         print(req)
         abort(400)
@@ -161,6 +156,26 @@ def preview_movies():
     return render_template('json_viewer.html', movies=movies)
 
 
+@app.route('/rssa_compute_test', methods=['POST'])
+@cross_origin(supports_credentials=True)
+def rssa_test():
+    start_time = time.time()
+    req = json.loads(request.data)
+    item_count = 7
+    try:
+        userid = req['userid']
+        ratings = req['ratings']
+        ratings = [Rating(**rating) for rating in ratings]
+        prediction = rssa.predict_user_controversial_items(ratings=ratings, \
+            user_id=userid, numRec=item_count)
+        print("--- %s seconds ---" % (time.time() - start_time))
+    except KeyError:
+        abort(400)
+
+    return dict({'exec_time': time.time() - start_time, \
+        'recommendations': prediction})
+
+
 """ TODO
     Wrap this into to a restful Recommendation resource
     POST -> return recommendations for a userid and list of movie ratings
@@ -187,15 +202,17 @@ def predict_preferences():
         userid = req['userid']
         ratings = req['ratings']
         ratings = [Rating(**rating) for rating in ratings]
-        condition = int(userid)%5
+        # condition = int(userid)%5
+        condition = survey_db.get_condition_for_user(userid)
         if condition == 0:
             topn = predict_user_topN(ratings=ratings, user_id=userid, \
                 numRec=item_count*2)
-            topn = movie_db.get_movie_lst(idlist=topn)
+            topn = new_movie_db.get_movie_from_list(idlist=topn)
             prediction = {
                 # topN
                 'left': {
-                    'label': 'Movies We Think You May Like', 'items': topn[:item_count]
+                    'label': 'Movies We Think You May Like', \
+                        'items': topn[:item_count]
                 },
                 # moreTopN
                 'right': {
@@ -206,11 +223,11 @@ def predict_preferences():
         else:
             topn = predict_user_topN(ratings=ratings, user_id=userid, \
                 numRec=item_count)
-            topn = movie_db.get_movie_lst(idlist=topn)
+            topn = new_movie_db.get_movie_from_list(idlist=topn)
 
             rightitems = funcs[condition][1](ratings=ratings, user_id=userid, \
                 numRec=item_count)
-            rightitems = movie_db.get_movie_lst(idlist=rightitems)
+            rightitems = new_movie_db.get_movie_from_list(idlist=rightitems)
             prediction = {
                 # topN
                 'left': {
@@ -227,7 +244,8 @@ def predict_preferences():
 
     # TODO Break this into conditionals to save compute cost
     # HIP - Movies you would be among the first to try
-    # Double check the TopN condition (Top 20? -> left 10 -> right 10) -> "More movies you may like"
+    # Double check the TopN condition 
+    # (Top 20? -> left 10 -> right 10) -> "More movies you may like"
     # funcs = {
     #     'top_n': predict_user_topN,
     #     'controversial': predict_user_controversial_items,
@@ -331,7 +349,8 @@ def sync_mouse_movement():
         page_width = req['pageWidth']
         page_height = req['pageHeight']
 
-        survey_db.sync_activity(userid, page_width, page_height, pageid, activity)
+        survey_db.sync_activity(userid, page_width, page_height, pageid, \
+            activity)
     except KeyError as e:
         abort(400)
 

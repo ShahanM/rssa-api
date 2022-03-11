@@ -171,6 +171,8 @@ class SeenItem(db.Model):
 		nullable=False)
 	page = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
 		nullable=False)
+	
+	gallerypagenum = db.Column(db.Integer, nullable=False)
 
 
 class UserInteraction(db.Model):
