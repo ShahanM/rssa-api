@@ -102,6 +102,36 @@ def get_movies():
     return Response(json.dumps(movies), mimetype='application/json')
 
 
+@app.route('/new_movies', methods=['GET'])
+@cross_origin(supports_credentials=True)
+def get_movies_two():
+    lim = int(request.args.get('limit'))
+    page = int(request.args.get('page'))
+    movies = new_movie_db.get_movies(lim, page)
+
+    return Response(json.dumps(movies), mimetype='application/json')
+
+
+@app.route('/new_movies', methods=['POST'])
+@cross_origin(supports_credentials=True)
+def get_movies_for_user():
+    req = json.loads(request.data)
+    print(req)
+    try:
+        userid = req['userid']
+        page_id = req['pageid']
+        lim = req['limit']
+        page = req['page']
+        seen = survey_db.movies_seen(userid)
+        movies = new_movie_db.get_movies(lim, page, seen)
+        survey_db.update_movies_seen(movies, userid, page_id)
+    except KeyError:
+        print(req)
+        abort(400)
+
+    return Response(json.dumps(movies), mimetype='application/json')
+
+
 @app.route('/movies', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def get_movie_from_ids():
@@ -110,7 +140,7 @@ def get_movie_from_ids():
     idlst = req['movie_ids']
 
     movies = movie_db.get_movie_lst(idlist=idlst)
-    return Response(json.dumps(movies), mimetype='application/json')
+    return Response(jsonify(movies), mimetype='application/json')
 
 
 """ TODO
@@ -240,8 +270,9 @@ def create_new_page():
 @app.route('/new_user', methods=['POST'])
 @cross_origin()
 def create_new_user():
+
     req = json.loads(request.data)
-    # survey_id = None
+
     try:
         # survey_id = req['survey_id']
         welcome_time = req['welcomeTime']
@@ -260,13 +291,6 @@ def create_new_user():
 def update_survey():
 
     req = json.loads(request.data)
-    # survey_id = None
-    # page_id = None
-    # user_id = None
-    # page_starttime = None
-    # page_endtime = None
-
-    # response_params = None
 
     try:
         # survey_id = req['survey_id']
@@ -281,7 +305,6 @@ def update_survey():
             survey_pageid=page_id, starttime=page_starttime, \
                 endtime=page_endtime, response_params=response_params)
     except KeyError as e:
-        print(e)
         abort(400)
 
 
