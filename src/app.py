@@ -120,7 +120,7 @@ def get_movies_for_user():
         loadedpages = seen.keys()
         if 0 in loadedpages or gallerypage not in loadedpages:
             print('Sending request to movie database.')
-            movies = new_movie_db.get_movies(lim, gallerypage, seen[0])
+            movies = new_movie_db.get_movies(lim, gallerypage, seen.values())
             survey_db.update_movies_seen(movies, userid, surveypageid, \
                 gallerypage)
         else:
