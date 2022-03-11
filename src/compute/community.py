@@ -14,8 +14,9 @@ class DiscreteContinuousCoupled(dict):
 
 def get_discrete_continuous_coupled() -> list:
 	mylst:list
-	with open('./compute_mod/dummy_outputs.txt', 'r') as f:
-		mylst = eval(f.read())	
+	with open('./compute/dummy_outputs.txt', 'r') as f:
+		mylst = eval(f.read())
+
 	return mylst
 
 

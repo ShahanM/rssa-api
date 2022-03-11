@@ -9,6 +9,7 @@ import algs.RSSA_recommendations as RSSA
 import pandas as pd
 import numpy as np
 
+
 def get_predictions(ratings: List[Rating], user_id) -> pd.DataFrame:
     # Could we also put the item_popularity.csv into database as well?
     data_path = './algs/data/'
@@ -35,17 +36,18 @@ def predict_user_topN(ratings: List[Rating], user_id, numRec=10) -> List[Prefere
     # numRec = 10
     RSSA_preds_noRatedItems = get_predictions(ratings, user_id)
     # ['item', 'score', 'count', 'rank', 'discounted_score']
-    traditional_preds_sorted = RSSA_preds_noRatedItems.sort_values(by = 'score', ascending = False)
+    # traditional_preds_sorted = RSSA_preds_noRatedItems.sort_values(by = 'score', ascending = False)
     discounted_preds_sorted = RSSA_preds_noRatedItems.sort_values(by = 'discounted_score', ascending = False)
-    recs_topN_traditional = traditional_preds_sorted.head(numRec)
+    # recs_topN_traditional = traditional_preds_sorted.head(numRec)
     recs_topN_discounted = discounted_preds_sorted.head(numRec)
     
-    recommendations = []
-    for index, row in recs_topN_discounted.iterrows():
+    # recommendations = [str(np.int64(row['item'])) for idx, row in recs_topN_discounted.iterrows()]
+    # for index, row in recs_topN_discounted.iterrows():
         # recommendations.append(Preference(str(np.int64(row['item'])), 'top_n'))
-        recommendations.append(str(np.int64(row['item'])))
-        
-    return recommendations
+        # recommendations.append(str(np.int64(row['item'])))
+    # print(map(str, recs_topN_discounted['item']))
+    # return [str(row['item']) for _, row in recs_topN_discounted.iterrows()]
+    return list(map(str, recs_topN_discounted['item']))
 
 def predict_user_hate_items(ratings: List[Rating], user_id, numRec=10) -> List[Preference]:
     # numRec = 10
@@ -59,15 +61,15 @@ def predict_user_hate_items(ratings: List[Rating], user_id, numRec=10) -> List[P
     RSSA_preds_noRatedItems_with_ave['margin_discounted'] = RSSA_preds_noRatedItems_with_ave['ave_discounted_score'] - RSSA_preds_noRatedItems_with_ave['discounted_score']
     RSSA_preds_noRatedItems_with_ave['margin'] = RSSA_preds_noRatedItems_with_ave['ave_score'] - RSSA_preds_noRatedItems_with_ave['score']
         # ['item', 'score', 'count', 'rank', 'discounted_score', 'ave_score', 'ave_discounted_score', 'margin_discounted', 'margin']
-    recs_hate_items = RSSA_preds_noRatedItems_with_ave.sort_values(by = 'margin', ascending = False).head(numRec)
+    # recs_hate_items = RSSA_preds_noRatedItems_with_ave.sort_values(by = 'margin', ascending = False).head(numRec)
     recs_hate_items_discounted = RSSA_preds_noRatedItems_with_ave.sort_values(by = 'margin_discounted', ascending = False).head(numRec)
     
-    recommendations = []
-    for index, row in recs_hate_items_discounted.iterrows():
+    # recommendations = [str(row['item']) for _, row in recs_hate_items_discounted.iterrows()]
+    # for index, row in recs_hate_items_discounted.iterrows():
         # recommendations.append(Preference(str(np.int64(row['item'])), 'hate'))
-        recommendations.append(str(np.int64(row['item'])))
+        # recommendations.append(str(np.int64(row['item'])))
 
-    return recommendations
+    return list(map(str, recs_hate_items_discounted['item']))
     
     
 def predict_user_hip_items(ratings: List[Rating], user_id, numRec=10) -> List[Preference]:
@@ -75,21 +77,21 @@ def predict_user_hip_items(ratings: List[Rating], user_id, numRec=10) -> List[Pr
     RSSA_preds_noRatedItems = get_predictions(ratings, user_id)
         # ['item', 'score', 'count', 'rank', 'discounted_score']
     numTopN = 1000    
-    RSSA_preds_noRatedItems_sort_by_score = RSSA_preds_noRatedItems.sort_values(by = 'score', ascending = False)
+    # RSSA_preds_noRatedItems_sort_by_score = RSSA_preds_noRatedItems.sort_values(by = 'score', ascending = False)
     RSSA_preds_noRatedItems_sort_by_Dscore = RSSA_preds_noRatedItems.sort_values(by = 'discounted_score', ascending = False)
-    RSSA_preds_noRatedItems_sort_by_score_numTopN = RSSA_preds_noRatedItems_sort_by_score.head(numTopN)
+    # RSSA_preds_noRatedItems_sort_by_score_numTopN = RSSA_preds_noRatedItems_sort_by_score.head(numTopN)
     RSSA_preds_noRatedItems_sort_by_Dscore_numTopN = RSSA_preds_noRatedItems_sort_by_Dscore.head(numTopN)
-    recs_hip_items = RSSA_preds_noRatedItems_sort_by_score_numTopN.sort_values(by = 'count', ascending = True).head(numRec)
+    # recs_hip_items = RSSA_preds_noRatedItems_sort_by_score_numTopN.sort_values(by = 'count', ascending = True).head(numRec)
         # ['item', 'score', 'count', 'rank', 'discounted_score']  
     recs_hip_items_discounted = RSSA_preds_noRatedItems_sort_by_Dscore_numTopN.sort_values(by = 'count', ascending = True).head(numRec)
         # ['item', 'score', 'count', 'rank', 'discounted_score']     
         
-    recommendations = []
-    for index, row in recs_hip_items_discounted.iterrows():
+    # recommendations = [str(row['item'])) for _, row in recs_hip_items_discounted.iterrows()]
+    # for index, row in recs_hip_items_discounted.iterrows():
         # recommendations.append(Preference(str(np.int64(row['item'])), 'hip'))
-        recommendations.append(str(np.int64(row['item'])))
+        # recommendations.append(str(np.int64(row['item'])))
 
-    return recommendations
+    return list(map(str, recs_hip_items_discounted['item']))
     
     
 def predict_user_no_clue_items(ratings: List[Rating], user_id, numRec=10) -> List[Preference]:
@@ -107,12 +109,12 @@ def predict_user_no_clue_items(ratings: List[Rating], user_id, numRec=10) -> Lis
     resampled_preds_high_std_noRated_sorted = resampled_preds_high_std_noRated.sort_values(by = 'std', ascending = False)
     recs_no_clue_items = resampled_preds_high_std_noRated_sorted.head(numRec)
 
-    recommendations = []
-    for index, row in recs_no_clue_items.iterrows():
+    # recommendations = [str(np.int64(row['item'])) for _, row in recs_no_clue_items.iterrows()]
+    # for index, row in recs_no_clue_items.iterrows():
         # recommendations.append(Preference(str(np.int64(row['item'])), 'no_clue'))
-        recommendations.append(str(np.int64(row['item'])))
+        # recommendations.append(str(np.int64(row['item'])))
 
-    return recommendations
+    return list(map(str, recs_no_clue_items['item']))
     
     
 def predict_user_controversial_items(ratings: List[Rating], user_id, numRec=10) -> List[Preference]:
@@ -145,12 +147,12 @@ def predict_user_controversial_items(ratings: List[Rating], user_id, numRec=10) 
     recs_controversial_items = variance_neighbors_noRated_sorted.head(numRec)
     
     
-    recommendations = []
-    for index, row in recs_controversial_items.iterrows():
+    # recommendations = [str((row['item'])) for _, row in recs_controversial_items.iterrows()]
+    # for index, row in recs_controversial_items.iterrows():
         # recommendations.append(Preference(str(np.int64(row['item'])), 'controversial'))
-        recommendations.append(str(np.int64(row['item'])))
+        # recommendations.append(str(np.int64(row['item'])))
 
-    return recommendations
+    return list(map(str, recs_controversial_items['item']))
     
     
 
