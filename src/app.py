@@ -207,7 +207,7 @@ def predict_preferences():
         if condition == 0:
             topn = predict_user_topN(ratings=ratings, user_id=userid, \
                 numRec=item_count*2)
-            topn = new_movie_db.get_movie_from_list(idlist=topn)
+            topn = new_movie_db.get_movie_from_list(movielist=topn)
             prediction = {
                 # topN
                 'left': {
@@ -223,11 +223,11 @@ def predict_preferences():
         else:
             topn = predict_user_topN(ratings=ratings, user_id=userid, \
                 numRec=item_count)
-            topn = new_movie_db.get_movie_from_list(idlist=topn)
+            topn = new_movie_db.get_movie_from_list(movielist=topn)
 
             rightitems = funcs[condition][1](ratings=ratings, user_id=userid, \
                 numRec=item_count)
-            rightitems = new_movie_db.get_movie_from_list(idlist=rightitems)
+            rightitems = new_movie_db.get_movie_from_list(movielist=rightitems)
             prediction = {
                 # topN
                 'left': {
