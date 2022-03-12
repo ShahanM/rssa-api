@@ -88,7 +88,7 @@ class NewMovieDB(object):
 
 	
 	def get_movie_from_list(self, movieids: list) -> list:
-		movies = Movie.query.filter(Movie.id.in_(movieids)).all()
+		movies = Movie.query.filter(Movie.movie_id.in_(movieids)).all()
 
 		return self._prep_to_send(movies)
 		

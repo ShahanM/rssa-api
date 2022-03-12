@@ -48,10 +48,25 @@ with app.app_context():
 	db.session.flush()
 
 	conditions = ['Top N', 'Controversial', 'Hate', 'Hip', 'No Clue']
+	cond_acts = ['More movies you may like', 'Movies that are controversial', 
+				'Movies you may hate', 'Movies you will be among the first to try',
+				'Movies we have no idea about']
+	cond_exps = [
+		'Beyond the top 7 movies on the left, there are the next 7 movies we \
+			think you will like best.',
+		'Thes movies received mixed reviews from people who are similar to you: \
+			some likes them and some didin\'t.',
+		'We predict that you particularly dislike these 7 movies... but we \
+			we might be wrong.',
+		'These movies received very few ratings, so you would be among the \
+			first to try them.',
+		'These are movies you may either like or dislike; we simply weren\'t \
+			able to make an accurate prediction.'
+		]
 	survey_conds = []
-	for cond in conditions:
-		print('Adding experimental condition', cond)
-		condition = Condition(condition_desc=cond)
+	for tag, act, exp in zip(conditions, cond_acts, cond_exps):
+		print('Adding experimental condition', tag)
+		condition = Condition(cond_tag=tag, cond_act=act, cond_exp=exp)
 		survey_conds.append(condition)
 
 	db.session.add_all(survey_conds)

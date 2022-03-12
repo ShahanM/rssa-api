@@ -17,6 +17,25 @@ class RSSACompute:
 
 		self.ave_item_score = pd.read_csv(self.data_path + 'averaged_item_score_implicitMF.csv')
 
+
+	def get_condition_prediction(self, ratings: List[Rating], user_id, condition, numRec=10):
+		conditional_foo = {
+			1: self.predict_user_controversial_items,
+			2: self.predict_user_hate_items,
+			3: self.predict_user_hip_items,
+			4: self.predict_user_no_clue_items
+		}
+		if condition == 0:
+			topN = self.predict_user_topN(ratings, user_id, numRec*2)
+			left = topN[:numRec]
+			right = topN[numRec:]
+		else:
+			left = self.predict_user_topN(ratings, user_id, numRec)
+			right = conditional_foo[condition](ratings, user_id, numRec)
+
+		return left, right
+			
+
 	def get_predictions(self, ratings: List[Rating], user_id) -> pd.DataFrame:
 		# Could we also put the item_popularity.csv into database as well?
 		rated_items = np.array([np.int64(rating.item_id) for rating in ratings])

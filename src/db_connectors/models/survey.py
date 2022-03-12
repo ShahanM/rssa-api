@@ -35,7 +35,9 @@ class Condition(db.Model):
 	__tablename__ = 'study_condition'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	condition_desc = db.Column(db.Text, nullable=False)
+	cond_tag = db.Column(db.String(144), nullable=False)
+	cond_act = db.Column(db.String(144), nullable=False)
+	cond_exp = db.Column(db.Text, nullable=True)
 
 	participant = db.relationship('User', backref='user')
 

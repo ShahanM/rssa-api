@@ -211,41 +211,66 @@ def predict_preferences():
         ratings = [Rating(**rating) for rating in ratings]
         # condition = int(userid)%5
         condition = survey_db.get_condition_for_user(userid)
-        if condition == 0:
-            topn = predict_user_topN(ratings=ratings, user_id=userid, \
-                numRec=item_count*2)
-            topn = new_movie_db.get_movie_from_list(movieids=topn)
-            prediction = {
-                # topN
-                'left': {
-                    'label': 'Movies We Think You May Like', \
-                        'items': topn[:item_count]
-                },
-                # moreTopN
-                'right': {
-                    'label': 'More Movies We Think You May Like', \
-                        'items': topn[item_count:]
-                }
+        left, right = rssa.get_condition_prediction(ratings, userid, \
+            condition.id-1, item_count)
+        print('left', len(left))
+        leftitems = new_movie_db.get_movie_from_list(movieids=left)
+        print('left items',len( leftitems))
+        leftitems2 = movie_db.get_movie_lst(idlist=left)
+        print('left two', len(leftitems2))
+        rightitems = new_movie_db.get_movie_from_list(movieids=right)
+        prediction = {
+            # topN
+            'left': {
+                'label': 'Movies You May Like',
+                'byline': 'Among the movies in your system, we predict that \
+                    you will like these 7 movies the best.',
+                'items': leftitems
+            },
+            # Condition specific messaging
+            'right': {
+                'label': condition.cond_act,
+                'byline': condition.cond_exp,
+                'items': rightitems
             }
-        else:
-            topn = predict_user_topN(ratings=ratings, user_id=userid, \
-                numRec=item_count)
-            topn = new_movie_db.get_movie_from_list(movieids=topn)
+        }
 
-            rightitems = funcs[condition][1](ratings=ratings, user_id=userid, \
-                numRec=item_count)
-            rightitems = new_movie_db.get_movie_from_list(movieids=rightitems)
-            prediction = {
-                # topN
-                'left': {
-                    'label': 'Movies You May Like', 'items': topn
-                },
-                # Condition specific messaging
-                'right': {
-                    'label': funcs[condition][2],
-                    'items': rightitems
-                }
-            }
+
+        # if condition == 0:
+        #     topn = rssa.predict_user_topN(ratings=ratings, user_id=userid, \
+        #         numRec=item_count*2)
+        #     topn = new_movie_db.get_movie_from_list(movieids=topn)
+        #     prediction = {
+        #         # topN
+        #         'left': {
+        #             'label': 'Movies We Think You May Like', \
+        #                 'items': topn[:item_count]
+        #         },
+        #         # moreTopN
+        #         'right': {
+        #             'label': 'More Movies We Think You May Like', \
+        #                 'items': topn[item_count:]
+        #         }
+        #     }
+        # else:
+        #     topn = rssa.predict_user_topN(ratings=ratings, user_id=userid, \
+        #         numRec=item_count)
+        #     topn = new_movie_db.get_movie_from_list(movieids=topn)
+
+        #     rightitems = rssa.funcs[condition][1](ratings=ratings, user_id=userid, \
+        #         numRec=item_count)
+        #     rightitems = new_movie_db.get_movie_from_list(movieids=rightitems)
+        #     prediction = {
+        #         # topN
+        #         'left': {
+        #             'label': 'Movies You May Like', 'items': topn
+        #         },
+        #         # Condition specific messaging
+        #         'right': {
+        #             'label': funcs[condition][2],
+        #             'items': rightitems
+        #         }
+        #     }
     except KeyError:
         abort(400)
 

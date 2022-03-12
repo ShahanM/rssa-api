@@ -4,7 +4,7 @@ from pathlib import Path
 from collections import defaultdict
 
 from .models.survey import SeenItem, Survey, SurveyQuestion, SurveyResponse, User, \
-	Rating, Score
+	Rating, Score, Condition
 
 
 class InvalidSurveyException(Exception):
@@ -72,8 +72,9 @@ class SurveyDB(object):
 	
 	def get_condition_for_user(self, userid:int) -> int:
 		user = User.query.filter_by(id=userid).first()
+		condition = Condition.query.filter_by(id=user.condition).first()
 		
-		return user.condition - 1
+		return condition
 
 	def add_survey_reponse(self, user_id, survey_pageid, starttime, endtime, \
 		response_params):
