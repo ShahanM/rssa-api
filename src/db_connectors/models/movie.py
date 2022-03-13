@@ -1,13 +1,7 @@
 from dataclasses import dataclass
-# from flask_sqlalchemy import SQLAlchemy
+
 from db_connectors.db import db
 
-# db = SQLAlchemy()
-
-# def initialize_db(app):
-    # db.init_app(app)
-
-    # return db
 
 @dataclass
 class RankGroup(db.Model):

@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import unique
+
 from db_connectors.db import db
 
 
@@ -158,6 +159,9 @@ class Rating(db.Model):
 		default=datetime.utcnow)
 	item_id = db.Column(db.Integer, nullable=False)
 	rating = db.Column(db.Integer, nullable=False)
+
+	location = db.Column(db.String(45), nullable=False)
+	level = db.Column(db.Integer, nullable=False)
 
 	survey_response = db.Column(db.Integer, db.ForeignKey('survey_response.id'), \
 		nullable=False)

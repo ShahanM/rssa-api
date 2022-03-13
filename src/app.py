@@ -26,9 +26,6 @@ from flask_cors import CORS, cross_origin
 
 from compute.community import get_discrete_continuous_coupled
 from compute.rssa import RSSACompute
-from compute_old import (predict_user_controversial_items,
-                         predict_user_hate_items, predict_user_hip_items,
-                         predict_user_no_clue_items, predict_user_topN)
 from db_connectors.db import db, initialize_db
 from db_connectors.movie_db import MovieDB
 from db_connectors.new_movie_db import NewMovieDB
@@ -192,36 +189,23 @@ def rssa_test():
 def predict_preferences():
     req = json.loads(request.data)
 
-    item_count = 7
-
-    funcs = {
-        0: ('top_n', predict_user_topN, 'Movies We Think You May Like'),
-        1: ('controversial', predict_user_controversial_items, \
-            'Movies We Think are Controversial to Your Preference'),
-        2: ('hate', predict_user_hate_items, 'Movies We Think You May Hate'),
-        3: ('hip', predict_user_hip_items, \
-            'Movies You We Think May Be Among the First to Try '),
-        4: ('no_clue', predict_user_no_clue_items, \
-            'Movies We Have No Idea About')
-    }
-
     try:
         userid = req['userid']
         ratings = req['ratings']
         ratings = [Rating(**rating) for rating in ratings]
-        # condition = int(userid)%5
+
+        item_count = req['count']
+
         condition = survey_db.get_condition_for_user(userid)
         left, right = rssa.get_condition_prediction(ratings, userid, \
             condition.id-1, item_count)
-        print('left', len(left))
         leftitems = new_movie_db.get_movie_from_list(movieids=left)
-        print('left items',len( leftitems))
-        leftitems2 = movie_db.get_movie_lst(idlist=left)
-        print('left two', len(leftitems2))
         rightitems = new_movie_db.get_movie_from_list(movieids=right)
+
         prediction = {
             # topN
             'left': {
+                'tag': 'control',
                 'label': 'Movies You May Like',
                 'byline': 'Among the movies in your system, we predict that \
                     you will like these 7 movies the best.',
@@ -229,48 +213,12 @@ def predict_preferences():
             },
             # Condition specific messaging
             'right': {
+                'tag': condition.cond_tag,
                 'label': condition.cond_act,
                 'byline': condition.cond_exp,
                 'items': rightitems
             }
         }
-
-
-        # if condition == 0:
-        #     topn = rssa.predict_user_topN(ratings=ratings, user_id=userid, \
-        #         numRec=item_count*2)
-        #     topn = new_movie_db.get_movie_from_list(movieids=topn)
-        #     prediction = {
-        #         # topN
-        #         'left': {
-        #             'label': 'Movies We Think You May Like', \
-        #                 'items': topn[:item_count]
-        #         },
-        #         # moreTopN
-        #         'right': {
-        #             'label': 'More Movies We Think You May Like', \
-        #                 'items': topn[item_count:]
-        #         }
-        #     }
-        # else:
-        #     topn = rssa.predict_user_topN(ratings=ratings, user_id=userid, \
-        #         numRec=item_count)
-        #     topn = new_movie_db.get_movie_from_list(movieids=topn)
-
-        #     rightitems = rssa.funcs[condition][1](ratings=ratings, user_id=userid, \
-        #         numRec=item_count)
-        #     rightitems = new_movie_db.get_movie_from_list(movieids=rightitems)
-        #     prediction = {
-        #         # topN
-        #         'left': {
-        #             'label': 'Movies You May Like', 'items': topn
-        #         },
-        #         # Condition specific messaging
-        #         'right': {
-        #             'label': funcs[condition][2],
-        #             'items': rightitems
-        #         }
-        #     }
     except KeyError:
         abort(400)
 
@@ -331,7 +279,6 @@ def create_new_user():
     req = json.loads(request.data)
 
     try:
-        # survey_id = req['survey_id']
         welcome_time = req['welcomeTime']
         consent_start_time = req['consentStartTime']
         consent_end_time = req['consentEndTime']
@@ -350,7 +297,6 @@ def update_survey():
     req = json.loads(request.data)
 
     try:
-        # survey_id = req['survey_id']
         page_id = req['pageid']
         user_id = req['userid']
         page_starttime = req['starttime']
@@ -362,10 +308,11 @@ def update_survey():
             survey_pageid=page_id, starttime=page_starttime, \
                 endtime=page_endtime, response_params=response_params)
     except KeyError as e:
+        print(e)
         abort(400)
 
 
-    return dict({'Sucess': True, 'user_id': str(user_id)})
+    return dict({'Success': True, 'user_id': str(user_id)})
 
 
 @app.route('/sync_movement', methods=['PUT'])
@@ -413,6 +360,5 @@ def get_completion_code():
 
 
 if __name__ == '__main__':
-    # host='0.0.0.0'
     app.run(port=settings['port'],
             debug=settings['debug'])

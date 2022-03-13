@@ -7,17 +7,7 @@ try:
 except ImportError:
     from typing_extensions import Literal
 
-# todo add docs for all
-
 Survey = Dict[str, Literal[1,2,3,4,5,6,7]]
-
-# todo remove...?
-class Request:
-    user_id: str
-
-
-# todo make not strict...
-# todo fix
 
 
 @dataclass
@@ -30,7 +20,6 @@ class Item:
     genre: str
 
 
-
 @dataclass
 class Rating:
     """
@@ -39,6 +28,8 @@ class Rating:
     """
     item_id: str
     rating: Literal[1,2,3,4,5]
+    loc: str
+    level: int
 
 
 @dataclass
@@ -49,15 +40,3 @@ class Preference:
     """
     item_id: str
     categories: List[Literal["top_n", "controversial", "hate", "hip", "no_clue"]]
-
-
-@dataclass
-class Event:
-    """
-    Represents an interaction with an item.
-    """
-    item_id: str
-    event_type: Literal["hover", "click"]
-    duration: int
-    enter_time: int
-    exit_time: int

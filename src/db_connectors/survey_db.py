@@ -94,9 +94,12 @@ class SurveyDB(object):
 			for itemrating in response_params['ratings']:
 				itemid = itemrating['item_id']
 				rating = itemrating['rating']
+				location = itemrating['loc']
+				level = itemrating['level']
 				if itemid not in itemsids:
 					survey_response.ratings.append(Rating(survey_response=survey_response.id, \
-						item_id=itemid, rating=rating))
+						item_id=itemid, rating=rating, location=location, \
+						level=level))
 
 		if 'pick' in response_params:
 			itemid = response_params['pick']
