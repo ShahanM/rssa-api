@@ -31,11 +31,11 @@ with app.app_context():
 	survey = Survey(title='rssa')
 	db.session.add(survey)
 	db.session.flush()
-	pages = ['Welcome', 'Consent', 'Instruction Summary', 'Movie Rating', 'Recommendation Rating', \
-		'Recommendation Pick', 'Post Survey Page 1', 'Post Survey Page 2', 'Post Survey Page 3', \
-		'Post Survey Page 3', 'Post Survey Page 4', 'Post Survey Page 5', 'Post Survey Page 6', \
-		'Ending']
-	page_type = ['welcome', 'consent_form', 'summary', 'rating', 'rating', 'rating', 'likert_form', \
+	pages = ['Welcome', 'Consent', 'Instruction Summary', 'Movie Rating', 'Recommendation Rating 1', \
+		'Recommendation Rating 2', 'Recommendation Pick', 'Closing RecSys', 'Post Survey Page 1', \
+		'Post Survey Page 2', 'Post Survey Page 3', 'Post Survey Page 3', 'Post Survey Page 4', \
+		'Post Survey Page 5', 'Post Survey Page 6', 'Ending']
+	page_type = ['welcome', 'consent_form', 'info', 'rating', 'rating', 'rating', 'info', 'likert_form', \
 		'likert_form', 'likert_form', 'likert_form', 'likert_form', 'likert_form', 'likert_form', 'ending']
 
 	survey_pages = []

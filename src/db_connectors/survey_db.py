@@ -3,7 +3,7 @@ import hashlib
 from pathlib import Path
 from collections import defaultdict
 
-from .models.survey import SeenItem, Survey, SurveyQuestion, SurveyResponse, User, \
+from .models.survey import FreeResponse, SeenItem, Survey, SurveyQuestion, SurveyResponse, User, \
 	Rating, Score, Condition
 
 
@@ -111,11 +111,18 @@ class SurveyDB(object):
 				qtext = qres['text']
 				question = self._get_question_or_create(survey_page=survey_page, \
 					text=qtext)
-				qscore = qres['val']
-				score = Score(score_point=qscore, question=question.id, \
-					survey_response=survey_response.id)
-				question.scores.append(score)
-				survey_response.scores.append(score)
+				if qres['type'] == 'likert':
+					qscore = qres['val']
+					score = Score(score_point=qscore, question=question.id, \
+						survey_response=survey_response.id)
+					question.scores.append(score)
+					survey_response.scores.append(score)
+				else:
+					qresTxt = qres['val']
+					free_res = FreeResponse(response_text=qresTxt, question=question.id, \
+						survey_response=survey_response.id)
+					question.responses.append(free_res)
+					survey_response.responses.append(free_res)
 
 		user.responses.append(survey_response)
 		self.db.session.commit()
