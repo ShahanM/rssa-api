@@ -112,6 +112,9 @@ def get_movies_for_user():
         surveypageid = req['pageid']
         lim = req['limit']
         gallerypage = req['page']
+        moviesubset = 'rssa'
+        if 'subset' in req:
+            moviesubset = req['subset']
         seen = survey_db.movies_seen(userid)
         movies: list
         loadedpages = seen.keys()
@@ -120,7 +123,7 @@ def get_movies_for_user():
             seenflat = []
             for seenpage in seen.values():
                 seenflat.extend(seenpage)
-            movies = new_movie_db.get_movies(lim, gallerypage, seenflat)
+            movies = new_movie_db.get_movies(lim, gallerypage, seenflat, moviesubset)
             
             survey_db.update_movies_seen(movies[:lim], userid, surveypageid, \
                 gallerypage)
@@ -147,17 +150,6 @@ def get_movie_from_ids():
 
     movies = movie_db.get_movie_lst(idlist=idlst)
     return Response(jsonify(movies), mimetype='application/json')
-
-
-""" TODO
-    This can be thrown out
-"""
-@app.route('/movie_previews', methods=['GET'])
-def preview_movies():
-
-    movies = movie_db.skiplimit(50, 1)
-
-    return render_template('json_viewer.html', movies=movies)
 
 
 @app.route('/rssa_compute_test', methods=['POST'])
@@ -195,12 +187,15 @@ def predict_preferences():
         ratings = [Rating(**rating) for rating in ratings]
 
         item_count = req['count']
+        moviesubset = 'rssa'
+        if 'subset' in req:
+            moviesubset = req['subset']
 
         condition = survey_db.get_condition_for_user(userid)
         left, right = rssa.get_condition_prediction(ratings, userid, \
             condition.id-1, item_count)
-        leftitems = new_movie_db.get_movie_from_list(movieids=left)
-        rightitems = new_movie_db.get_movie_from_list(movieids=right)
+        leftitems = new_movie_db.get_movie_from_list(movieids=left, api=moviesubset)
+        rightitems = new_movie_db.get_movie_from_list(movieids=right, api=moviesubset)
 
         prediction = {
             # topN
@@ -222,10 +217,6 @@ def predict_preferences():
     except KeyError:
         abort(400)
 
-    # TODO Break this into conditionals to save compute cost
-    # HIP - Movies you would be among the first to try
-    # Double check the TopN condition 
-    # (Top 20? -> left 10 -> right 10) -> "More movies you may like"
     # funcs = {
     #     'top_n': predict_user_topN,
     #     'controversial': predict_user_controversial_items,
@@ -233,8 +224,6 @@ def predict_preferences():
     #     'hip': predict_user_hip_items,
     #     'no_clue': predict_user_no_clue_items
     # }
-
-    # predictions = {k: f(ratings=ratings, user_id=0) for k, f in funcs.items()}
 
     return dict(recommendations=prediction)
 

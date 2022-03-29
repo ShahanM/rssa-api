@@ -130,6 +130,7 @@ class SurveyDB(object):
 		return user.id
 	
 	def _find_question_by_text(self, survey_page, text):
+		print(text)
 		all_questions = SurveyQuestion.query.filter_by(\
 			survey_page=survey_page.id).all()
 		for question in all_questions:

@@ -3,9 +3,10 @@ import random
 from dataclasses import asdict
 import functools
 
+from sqlalchemy import and_
 from sqlalchemy.sql import func
 
-from .models.movie import Movie
+from .models.movie import Movie, MovieEmotions
 
 
 class NewMovieDB(object):
@@ -17,7 +18,7 @@ class NewMovieDB(object):
 	def get_database(self):
 		return self.db
 
-	def get_movies(self, lim, page_num, seen=None):
+	def get_movies(self, lim, page_num, seen=None, api='rssa'):
 		'''
 			1: {1: 0, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3},
 			2: {1: 1, 2: 4, 3: 4, 4: 2, 5: 2, 6: 2},
@@ -33,6 +34,8 @@ class NewMovieDB(object):
 			4: (4, 5, 6, 0, 0, 0),
 			5: (4, 6, 5, 0, 0, 0)
 		}
+
+		ers = api == 'ers'
 		seen = Movie.query\
 			.filter(Movie.id.in_([item.item_id for item in seen])).all()
 		seen = tuple() if seen is None else tuple(seen)
@@ -44,14 +47,14 @@ class NewMovieDB(object):
 			page_num = 5 if page_num > 5 else page_num
 			items_to_send.extend(self._generate_page(lim, \
 				sampling_weights=page_dist[page_num], seen=seen, \
-					pagenum=page_num))
+					pagenum=page_num, ers=ers))
 		print(self._generate_page.cache_info())
 		return items_to_send
 
 
 	@functools.lru_cache(maxsize=32)
 	def _generate_page(self,  lim: int, sampling_weights: tuple, seen: tuple, \
-		pagenum:int) -> list:
+		pagenum:int, ers:bool) -> list:
 		page_items = set()
 		seen = set(seen)
 		print('Building page for user')
@@ -63,9 +66,8 @@ class NewMovieDB(object):
 				item = None
 				trialcount = 0
 				while item is None:
-					item = Movie.query.filter_by(rank_group=group, \
-						year_bucket=bucket)\
-						.order_by(func.random()).limit(1).first()
+					item = self._get_ers_item(group, bucket) \
+						if ers else self._get_rssa_item(group, bucket)
 					if item is None or trialcount > 5:
 						print('Could not find movie in bucket {} with {} \
 							tries. Moving to next bucket.'\
@@ -79,24 +81,52 @@ class NewMovieDB(object):
 		else:
 			if len(page_items) < lim:
 				excludelst = [itm.id for itm in page_items.union(seen)]
-				item = Movie.query.filter(Movie.id.notin_(excludelst))\
-					.order_by(func.random())\
-						.limit(lim - len(page_items)).all()
-				page_items.update(item)
+				items = self._get_ers_filler(excludelst, page_items, lim) \
+					if not ers else self._get_rssa_fillers(excludelst, page_items, lim)
+				page_items.update(items)
 				
-		return self._prep_to_send(page_items)
+		return self._prep_to_send(page_items, ers)
 
 	
-	def get_movie_from_list(self, movieids: list) -> list:
+	def get_movie_from_list(self, movieids:list, api:str='rssa') -> list:
+		ers = api == 'ers'
 		movies = Movie.query.filter(Movie.movie_id.in_(movieids)).all()
 
-		return self._prep_to_send(movies)
-		
+		return self._prep_to_send(movies, ers)
 
-	def _prep_to_send(self, movielist):
+	def _get_ers_item(self, group, bucket):
+		return Movie.query.filter(and_(\
+					Movie.emotions != None,
+					Movie.emotions.has(MovieEmotions.iers_rank_group==group), \
+					Movie.year_bucket==bucket \
+				))\
+				.order_by(func.random()).limit(1).first()
+
+	def _get_rssa_item(self, group, bucket):
+		return Movie.query.filter_by(rank_group=group, year_bucket=bucket)\
+					.order_by(func.random()).limit(1).first()
+
+	def _get_ers_filler(self, excludelst, page_items, lim):
+		return Movie.query.filter(and_(\
+					Movie.id.notin_(excludelst),
+					Movie.emotions != None
+				))\
+				.order_by(func.random())\
+				.limit(lim - len(page_items)).all()
+
+	def _get_rssa_fillers(self, excludelst, page_items, lim):
+		return Movie.query.filter(Movie.id.notin_(excludelst))\
+					.order_by(func.random())\
+					.limit(lim - len(page_items)).all()
+
+
+	def _prep_to_send(self, movielist, ers):
 		items = []
 		for page_item in movielist:
 			item = asdict(page_item)
+			if page_item.emotions is not None and ers:
+				emotions = asdict(page_item.emotions)
+				item = {**item, **emotions}
 			item['rating'] = 0
 			item['movie_id'] = str(item['movie_id'])
 			items.append(item)
