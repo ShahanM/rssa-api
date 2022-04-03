@@ -185,8 +185,7 @@ class UserInteraction(db.Model):
 	__tablename__ = 'user_interaction'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), \
-		nullable=False)
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 	page_id = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
 		nullable=False)
 	action_type = db.Column(db.String(144), nullable=False)
@@ -203,3 +202,15 @@ class ActionTarget(db.Model):
 	target_label = db.Column(db.String(144), nullable=False)
 	target_type = db.Column(db.String(144))
 
+
+class Demography(db.Model):
+	__tablename__ = 'demography'
+
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	age = db.Column(db.Integer, nullable=False)
+	race = db.Column(db.Integer, nullable=False)
+	gender = db.Column(db.Integer, nullable=False)
+	country = db.Column(db.String(81), nullable=False)
+	education = db.Column(db.Integer, nullable=False)
+
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

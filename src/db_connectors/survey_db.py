@@ -4,7 +4,7 @@ from pathlib import Path
 from collections import defaultdict
 
 from .models.survey import FreeResponse, SeenItem, Survey, SurveyQuestion, SurveyResponse, User, \
-	Rating, Score, Condition
+	Rating, Score, Condition, Demography
 
 
 class InvalidSurveyException(Exception):
@@ -81,7 +81,6 @@ class SurveyDB(object):
 		user = User.query.filter_by(id=user_id).first()
 		if user is None:
 			raise InvalidUserException
-
 		survey_page = self._get_survey_pages()[survey_pageid-1] # FIXME - validate survey_page
 
 		survey_response = SurveyResponse(user=user_id, survey_page=survey_page.id, \
@@ -123,6 +122,25 @@ class SurveyDB(object):
 						survey_response=survey_response.id)
 					question.responses.append(free_res)
 					survey_response.responses.append(free_res)
+		
+		if 'demography' in response_params:
+			dem = response_params['demography']
+			age = dem['age']
+			edu = dem['education']
+			rac = dem['race']
+			gen = dem['gender']
+			con = dem['country']
+			print(con)
+			demo = Demography(age=age, education=edu, race=rac, gender=gen, \
+				country=con, user_id=user.id)
+			textgen = dem['textgen']
+			if len(textgen) > 1:
+				question = self._get_question_or_create(survey_page=survey_page, \
+					text='Self identifying gender')
+				free_res = FreeResponse(response_text=qresTxt, question=question.id, \
+					survey_response=survey_response.id)
+			self.db.session.add(demo)
+			self.db.session.flush()
 
 		user.responses.append(survey_response)
 		self.db.session.commit()
@@ -130,7 +148,6 @@ class SurveyDB(object):
 		return user.id
 	
 	def _find_question_by_text(self, survey_page, text):
-		print(text)
 		all_questions = SurveyQuestion.query.filter_by(\
 			survey_page=survey_page.id).all()
 		for question in all_questions:

@@ -31,12 +31,14 @@ with app.app_context():
 	survey = Survey(title='rssa')
 	db.session.add(survey)
 	db.session.flush()
-	pages = ['Welcome', 'Consent', 'Instruction Summary', 'Movie Rating', 'Recommendation Rating 1', \
+	pages = ['Welcome', 'Consent', 'Pre Survey Page 1', 'Pre Survey Page 2', 'Pre Survey Page 3', 
+		'Pre Survey Page 4', 'Instruction Summary', 'Movie Rating', 'Recommendation Rating 1', \
 		'Recommendation Rating 2', 'Recommendation Pick', 'Closing RecSys', 'Post Survey Page 1', \
 		'Post Survey Page 2', 'Post Survey Page 3', 'Post Survey Page 3', 'Post Survey Page 4', \
-		'Post Survey Page 5', 'Post Survey Page 6', 'Ending']
-	page_type = ['welcome', 'consent_form', 'info', 'rating', 'rating', 'rating', 'info', 'likert_form', \
-		'likert_form', 'likert_form', 'likert_form', 'likert_form', 'likert_form', 'likert_form', 'ending']
+		'Post Survey Page 5', 'Post Survey Page 6', 'Post Survey Page 7', 'Demographic Info', 'Ending']
+	page_type = ['welcome', 'consent_form', 'likert_form', 'likert_form', 'likert_form', 'likert_form', \
+		'info', 'rating', 'rating', 'rating', 'info', 'likert_form', 'likert_form', 'likert_form', \
+			'rating_familiarity', 'likert_form', 'likert_form', 'likert_form', 'demo_form', 'ending']
 
 	survey_pages = []
 	for pnum, (ptitle, ptype) in enumerate(zip(pages, page_type), 1):
