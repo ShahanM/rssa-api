@@ -1,5 +1,4 @@
 """
-
 app.py
 
 Aru Bhoop. Algorithms by Lijie Guo.
@@ -11,7 +10,6 @@ Clemson University.
 Server for running the recommender algorithms. See
 `models.py` for information about the input and
 outputs.
-
 """
 
 import re
@@ -23,6 +21,8 @@ from urllib import response
 from flask import (Flask, Response, abort, json, jsonify, render_template,
                    request)
 from flask_cors import CORS, cross_origin
+from importlib_metadata import Deprecated
+from numpy import deprecate
 
 from compute.community import get_discrete_continuous_coupled
 from compute.rssa import RSSACompute
@@ -52,12 +52,23 @@ SQLALCHEMY_BINDS = {
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = SURVEY_DB
 app.config['SQLALCHEMY_BINDS'] = SQLALCHEMY_BINDS
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'encoding': 'utf-8'}
 
 survey_db = SurveyDB(initialize_db(app), activity_base_path=ACTIVITY_BASE)
 new_movie_db = NewMovieDB(db)
 movie_db = MovieDB(MOVIE_DB)
 
 rssa = RSSACompute()
+
+
+@app.before_request
+def before_request_callback():
+    print('we are here')
+    # prolific_id = request.args.get('PROLIFIC_PID')
+    # study_id = request.args.get('STUDY_ID')
+    # session_id = request.args.get('SESSION_ID')
+    survey_db.log_request(request)
+
 
 @app.route('/')
 def show_readme():
@@ -78,11 +89,7 @@ def get_discrete_cont_coupled():
     return Response(json.dumps(data), mimetype='application/json')
 
 
-""" TODO
-    Wrap this into a restful Movie resource
-    POST -> return a list of movie objects given a list of ids
-    GET  -> return a paged list of movie objects
-"""
+@deprecate
 @app.route('/movies', methods=['GET'])
 @cross_origin(supports_credentials=True)
 def get_movies():
@@ -141,10 +148,10 @@ def get_movies_for_user():
     return Response(json.dumps(movies), mimetype='application/json')
 
 
+@deprecate
 @app.route('/movies', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def get_movie_from_ids():
-
     req = json.loads(request.data)
     idlst = req['movie_ids']
 
@@ -152,6 +159,7 @@ def get_movie_from_ids():
     return Response(jsonify(movies), mimetype='application/json')
 
 
+@deprecate
 @app.route('/rssa_compute_test', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def rssa_test():
@@ -216,14 +224,6 @@ def predict_preferences():
         }
     except KeyError:
         abort(400)
-
-    # funcs = {
-    #     'top_n': predict_user_topN,
-    #     'controversial': predict_user_controversial_items,
-    #     'hate': predict_user_hate_items,
-    #     'hip': predict_user_hip_items,
-    #     'no_clue': predict_user_no_clue_items
-    # }
 
     return dict(recommendations=prediction)
 
@@ -325,6 +325,7 @@ def sync_mouse_movement():
     return dict({'Success': True})
 
 
+@deprecate
 @app.route('/completionCode', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def get_completion_code():

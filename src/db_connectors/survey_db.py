@@ -233,6 +233,9 @@ class SurveyDB(object):
 			for line in activity_data:
 				f.write(','.join([str(line[key]) for key in orderedkeys]))
 				f.write('\n')
+
+	def log_request(self, req):
+		pass
 		
 
 class Borg:

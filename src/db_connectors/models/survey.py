@@ -214,3 +214,17 @@ class Demography(db.Model):
 	education = db.Column(db.Integer, nullable=False)
 
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+
+class RequestLog(db.Model):
+	__tablename__ = 'request_log'
+
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	timestamp = db.Column(db.DateTime, nullable=False)
+
+	rawheader = db.Column(db.Text, nullable=False)
+	useragent = db.Column(db.Text, nullable=False)
+	orgin = db.Column(db.String(144), nullable=False)
+	referer = db.Column(db.String(144), nullable=False)
+
+	endpoint = db.Column(db.String(144), nullable=False)
