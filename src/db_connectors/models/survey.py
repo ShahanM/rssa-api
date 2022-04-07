@@ -208,7 +208,7 @@ class Demography(db.Model):
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	age = db.Column(db.Integer, nullable=False)
-	race = db.Column(db.Integer, nullable=False)
+	race = db.Column(db.String(144), nullable=False)
 	gender = db.Column(db.Integer, nullable=False)
 	country = db.Column(db.String(81), nullable=False)
 	education = db.Column(db.Integer, nullable=False)
@@ -224,7 +224,25 @@ class RequestLog(db.Model):
 
 	rawheader = db.Column(db.Text, nullable=False)
 	useragent = db.Column(db.Text, nullable=False)
-	orgin = db.Column(db.String(144), nullable=False)
+	origin = db.Column(db.String(144), nullable=False)
 	referer = db.Column(db.String(144), nullable=False)
 
 	endpoint = db.Column(db.String(144), nullable=False)
+
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+
+
+class PlatformSession(db.Model):
+	__tablename__ = 'platform_session'
+
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	timestamp = db.Column(db.DateTime, nullable=False)
+
+	platform_type = db.Column(db.String(144), nullable=False)
+	platform_id = db.Column(db.String(144), nullable=False)
+	study_id = db.Column(db.String(144), nullable=False)
+	session_id = db.Column(db.String(144), nullable=False)
+
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)

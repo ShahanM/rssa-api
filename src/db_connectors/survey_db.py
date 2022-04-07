@@ -2,9 +2,12 @@ from datetime import datetime
 import hashlib
 from pathlib import Path
 from collections import defaultdict
+import re
+from MySQLdb import Timestamp
+from flask import request, json
 
-from .models.survey import FreeResponse, SeenItem, Survey, SurveyQuestion, SurveyResponse, User, \
-	Rating, Score, Condition, Demography
+from .models.survey import FreeResponse, PlatformSession, SeenItem, Survey, SurveyQuestion, SurveyResponse, User, \
+	Rating, Score, Condition, Demography, RequestLog
 
 
 class InvalidSurveyException(Exception):
@@ -23,9 +26,10 @@ class InvalidRequestException(Exception):
 
 
 class SurveyDB(object):
-	def __init__(self, db, survey_id=1, activity_base_path=None):
+	def __init__(self, db, survey_id=1, redirect_url='', activity_base_path=None):
 		self.db = db
 		self.survey_id = survey_id
+		self.redirect_url = redirect_url
 		self.parse_datetime = lambda dtstr: datetime.strptime(dtstr, "%a, %d %b %Y %H:%M:%S %Z")
 		self.activity_base_path = 'user_interaction_data/' if \
 			activity_base_path is None else activity_base_path
@@ -39,7 +43,7 @@ class SurveyDB(object):
 			raise InvalidSurveyException
 		return list(sorted(survey.survey_pages, key=lambda page: page.page_num))
 
-	def create_user(self, welcome_time, consent_start_time, consent_end_time):
+	def create_user(self, welcome_time, consent_start_time, consent_end_time, platform_info):
 		survey_pages = self._get_survey_pages()
 
 		conditionPicker = ConditionPicker()
@@ -48,6 +52,7 @@ class SurveyDB(object):
 			condition=conditionPicker.get_condition_index())
 		self.db.session.add(user)
 		self.db.session.flush()
+
 
 		user_response = []
 
@@ -66,6 +71,7 @@ class SurveyDB(object):
 
 		user.responses = user_response
 
+		self.add_platform_session(platform_info, user.id)
 		self.db.session.commit()
 
 		return user.id
@@ -130,17 +136,21 @@ class SurveyDB(object):
 			rac = dem['race']
 			gen = dem['gender']
 			con = dem['country']
-			print(con)
-			demo = Demography(age=age, education=edu, race=rac, gender=gen, \
-				country=con, user_id=user.id)
+			demo = Demography(age=age, education=edu, race=':'.join(map(str, rac)), \
+				gender=gen, country=con, user_id=user.id)
 			textgen = dem['textgen']
 			if len(textgen) > 1:
 				question = self._get_question_or_create(survey_page=survey_page, \
 					text='Self identifying gender')
-				free_res = FreeResponse(response_text=qresTxt, question=question.id, \
+				free_res = FreeResponse(response_text=textgen, question=question.id, \
+					survey_response=survey_response.id)
+			textrac = dem['textrac']
+			if len(textrac) > 1:
+				question = self._get_question_or_create(survey_page=survey_page, \
+					text='Self identifying race')
+				free_res = FreeResponse(response_text=textrac, question=question.id, \
 					survey_response=survey_response.id)
 			self.db.session.add(demo)
-			self.db.session.flush()
 
 		user.responses.append(survey_response)
 		self.db.session.commit()
@@ -173,7 +183,6 @@ class SurveyDB(object):
 		if len(seen) > 0:
 			for seenitem in seen:
 				seen_dict[seenitem.gallerypagenum].append(seenitem)
-			# seen_dict = {seenitem.gallerypagenum: seenitem for seenitem in seen}
 		else:
 			seen_dict = {0: seen}
 
@@ -191,10 +200,9 @@ class SurveyDB(object):
 			for movieid in seenmovies if movieid not in seenids]
 		
 		self.db.session.add_all(newitems)
-		self.db.session.flush()
 		self.db.session.commit()
 
-	def get_user_code(self, user_id:int, survey_pageid:int, requesttime:str, \
+	def get_redirect_url(self, user_id:int, survey_pageid:int, requesttime:str, \
 		completed=False) -> str:
 		if completed == False:
 			raise InvalidRequestException
@@ -211,10 +219,7 @@ class SurveyDB(object):
 		user.responses.append(survey_response)
 		self.db.session.commit()
 
-		userstr = str(user.id) + str(user.date_created) + str(time)
-		userhash = hashlib.md5(userstr.encode('utf8'))
-
-		return str(userhash.digest()[3]) + ' ' + str(userhash.digest()[9])
+		return self.redirect_url
 
 	def add_user_interaction(self, userid:int, pageid:int, action:str, \
 		target:int, time) -> None:
@@ -234,8 +239,35 @@ class SurveyDB(object):
 				f.write(','.join([str(line[key]) for key in orderedkeys]))
 				f.write('\n')
 
-	def log_request(self, req):
-		pass
+	def log_request(self, req:request):
+		userid = None
+
+		if 'userid' in str(req.get_data()):
+			userid = json.loads((req.get_data()))['userid']
+		rawheader = req.headers
+		useragent = req.headers['User-Agent']
+		origin = req.headers['Origin']
+		referer = req.headers['Referer']
+		endpoint = req.full_path
+		reqlog = RequestLog(timestamp=datetime.now(), rawheader=rawheader, \
+			useragent=useragent, origin=origin, referer=referer, endpoint=endpoint,\
+			user_id=userid, survey_id=self.survey_id)
+		
+		self.db.session.add(reqlog)
+		self.db.session.commit()
+
+	def add_platform_session(self, platform_info:dict, userid:int=None):
+		platform_type = 'Prolific'
+		platform_id = platform_info['prolific_pid']
+		study_id = platform_info['study_id']
+		session_id = platform_info['session_id']
+		starttime = platform_info['start_time']
+		if all(map(lambda x: len(x) > 0, [platform_id, study_id, session_id])):
+			platform_sess = PlatformSession(timestamp=self.parse_datetime(starttime), \
+				platform_type=platform_type, platform_id=platform_id, \
+				study_id=study_id, session_id=session_id, user_id=userid, \
+				survey_id=self.survey_id)
+			self.db.session.add(platform_sess)
 		
 
 class Borg:

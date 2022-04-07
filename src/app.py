@@ -12,17 +12,15 @@ Server for running the recommender algorithms. See
 outputs.
 """
 
-import re
-import time
-from ast import Num
-from pathlib import Path
-from urllib import response
+# import re
+# import time
+# from ast import Num
+# from pathlib import Path
+# from urllib import response
+# from numpy import deprecate
 
-from flask import (Flask, Response, abort, json, jsonify, render_template,
-                   request)
+from flask import Flask, Response, abort, json, render_template, request
 from flask_cors import CORS, cross_origin
-from importlib_metadata import Deprecated
-from numpy import deprecate
 
 from compute.community import get_discrete_continuous_coupled
 from compute.rssa import RSSACompute
@@ -46,6 +44,7 @@ MOVIE_DB = settings['mongo_url']
 NEW_MOVIE_DB = settings['postgres_url']
 SURVEY_DB = settings['mysql_url']
 SURVEY_ID = settings['survey_id']
+REDIRECT_URL = settings['study_redirect_url']
 SQLALCHEMY_BINDS = {
     'postgres': NEW_MOVIE_DB
 }
@@ -54,7 +53,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = SURVEY_DB
 app.config['SQLALCHEMY_BINDS'] = SQLALCHEMY_BINDS
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'encoding': 'utf-8'}
 
-survey_db = SurveyDB(initialize_db(app), activity_base_path=ACTIVITY_BASE)
+survey_db = SurveyDB(initialize_db(app), redirect_url=REDIRECT_URL, \
+    activity_base_path=ACTIVITY_BASE)
 new_movie_db = NewMovieDB(db)
 movie_db = MovieDB(MOVIE_DB)
 
@@ -63,10 +63,6 @@ rssa = RSSACompute()
 
 @app.before_request
 def before_request_callback():
-    print('we are here')
-    # prolific_id = request.args.get('PROLIFIC_PID')
-    # study_id = request.args.get('STUDY_ID')
-    # session_id = request.args.get('SESSION_ID')
     survey_db.log_request(request)
 
 
@@ -87,17 +83,6 @@ def get_discrete_cont_coupled():
 
     data = list(dictdata.values())
     return Response(json.dumps(data), mimetype='application/json')
-
-
-@deprecate
-@app.route('/movies', methods=['GET'])
-@cross_origin(supports_credentials=True)
-def get_movies():
-    lim = int(request.args.get("limit"))
-    page = int(request.args.get("page"))
-    movies = movie_db.skiplimit(lim, page)
-
-    return Response(json.dumps(movies), mimetype='application/json')
 
 
 @app.route('/new_movies', methods=['GET'])
@@ -146,38 +131,6 @@ def get_movies_for_user():
         abort(400)
 
     return Response(json.dumps(movies), mimetype='application/json')
-
-
-@deprecate
-@app.route('/movies', methods=['POST'])
-@cross_origin(supports_credentials=True)
-def get_movie_from_ids():
-    req = json.loads(request.data)
-    idlst = req['movie_ids']
-
-    movies = movie_db.get_movie_lst(idlist=idlst)
-    return Response(jsonify(movies), mimetype='application/json')
-
-
-@deprecate
-@app.route('/rssa_compute_test', methods=['POST'])
-@cross_origin(supports_credentials=True)
-def rssa_test():
-    start_time = time.time()
-    req = json.loads(request.data)
-    item_count = 7
-    try:
-        userid = req['userid']
-        ratings = req['ratings']
-        ratings = [Rating(**rating) for rating in ratings]
-        prediction = rssa.predict_user_controversial_items(ratings=ratings, \
-            user_id=userid, numRec=item_count)
-        print("--- %s seconds ---" % (time.time() - start_time))
-    except KeyError:
-        abort(400)
-
-    return dict({'exec_time': time.time() - start_time, \
-        'recommendations': prediction})
 
 
 """ TODO
@@ -229,34 +182,6 @@ def predict_preferences():
 
 
 """ TODO
-    Wrap this into a restful Survey resource
-    POST -> New Survey
-    GET  -> return list of Survey for authenticated user
-"""
-@app.route('/new_survey', methods=['POST'])
-@cross_origin(supports_credentials=True)
-def create_new_survey():
-
-    # TODO This should be implemented for the framework deploy
-
-    abort(401)
-
-
-""" TODO
-    Wrap this into a restful SurveyPage resource
-    POST -> New survey page for a given survey id
-    GET  -> return a list of survey pages for a given survey id
-"""
-@app.route('/new_survey_page', methods=['POST'])
-@cross_origin(supports_credentials=True)
-def create_new_page():
-
-    # TODO This is for the page building form in the framework deploy
-
-    abort(401)
-
-
-""" TODO
     Wrap this into a restful User resource
     POST -> create a new user at the beginning of the survey
     PUT  -> Update entries as a user progresses through the survey
@@ -271,8 +196,9 @@ def create_new_user():
         welcome_time = req['welcomeTime']
         consent_start_time = req['consentStartTime']
         consent_end_time = req['consentEndTime']
+        platform_info = req['platformInfo']
         user_id = survey_db.create_user(welcome_time, consent_start_time, \
-            consent_end_time)
+            consent_end_time, platform_info)
     except KeyError:
         abort(400)
 
@@ -325,8 +251,7 @@ def sync_mouse_movement():
     return dict({'Success': True})
 
 
-@deprecate
-@app.route('/completionCode', methods=['POST'])
+@app.route('/redirect', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def get_completion_code():
     
@@ -338,7 +263,7 @@ def get_completion_code():
         requesttime = req['requestime']
         completed = req['completed']
 
-        user_code = survey_db.get_user_code(user_id=user_id, \
+        redirect_url = survey_db.get_redirect_url(user_id=user_id, \
             survey_pageid=page_id, requesttime=requesttime, \
                 completed=completed)
 
@@ -346,7 +271,78 @@ def get_completion_code():
         print(e)
         abort(400)
 
-    return dict({'user_code': str(user_code)})
+    return dict({'redirect_url': redirect_url})
+
+
+# @deprecate
+# @app.route('/movies', methods=['POST'])
+# @cross_origin(supports_credentials=True)
+# def get_movie_from_ids():
+#     req = json.loads(request.data)
+#     idlst = req['movie_ids']
+
+#     movies = movie_db.get_movie_lst(idlist=idlst)
+#     return Response(jsonify(movies), mimetype='application/json')
+
+
+# @deprecate
+# @app.route('/rssa_compute_test', methods=['POST'])
+# @cross_origin(supports_credentials=True)
+# def rssa_test():
+#     start_time = time.time()
+#     req = json.loads(request.data)
+#     item_count = 7
+#     try:
+#         userid = req['userid']
+#         ratings = req['ratings']
+#         ratings = [Rating(**rating) for rating in ratings]
+#         prediction = rssa.predict_user_controversial_items(ratings=ratings, \
+#             user_id=userid, numRec=item_count)
+#         print("--- %s seconds ---" % (time.time() - start_time))
+#     except KeyError:
+#         abort(400)
+
+#     return dict({'exec_time': time.time() - start_time, \
+#         'recommendations': prediction})
+
+
+# @deprecate
+# @app.route('/movies', methods=['GET'])
+# @cross_origin(supports_credentials=True)
+# def get_movies():
+#     lim = int(request.args.get("limit"))
+#     page = int(request.args.get("page"))
+#     movies = movie_db.skiplimit(lim, page)
+
+#     return Response(json.dumps(movies), mimetype='application/json')
+
+
+""" TODO
+    Wrap this into a restful Survey resource
+    POST -> New Survey
+    GET  -> return list of Survey for authenticated user
+"""
+@app.route('/new_survey', methods=['POST'])
+@cross_origin(supports_credentials=True)
+def create_new_survey():
+
+    # TODO This should be implemented for the framework deploy
+
+    abort(401)
+
+
+""" TODO
+    Wrap this into a restful SurveyPage resource
+    POST -> New survey page for a given survey id
+    GET  -> return a list of survey pages for a given survey id
+"""
+@app.route('/new_survey_page', methods=['POST'])
+@cross_origin(supports_credentials=True)
+def create_new_page():
+
+    # TODO This is for the page building form in the framework deploy
+
+    abort(401)
 
 
 if __name__ == '__main__':
