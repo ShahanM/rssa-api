@@ -1,5 +1,7 @@
 from datetime import datetime
 from enum import unique
+from dataclasses import dataclass
+from typing import List
 
 from db_connectors.db import db
 
@@ -40,30 +42,33 @@ class Condition(db.Model):
 	cond_act = db.Column(db.String(144), nullable=False)
 	cond_exp = db.Column(db.Text, nullable=True)
 
-	participant = db.relationship('User', backref='user')
+	participant = db.relationship('User', secondary=user_condition, \
+		backref=db.backref('user'))
 
 
+@dataclass
 class User(db.Model):
 	__tablename__ = 'user'
 	salt = 144
 
-	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), \
+	survey_id:int = db.Column(db.Integer, db.ForeignKey('survey.id'), \
 		nullable=False)
 
-	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	date_created = db.Column(db.DateTime, nullable=False, \
 		default=datetime.utcnow)
 
-	condition = db.Column(db.Integer, db.ForeignKey('study_condition.id'), \
+	condition:int = db.Column(db.Integer, db.ForeignKey('study_condition.id'), \
 		nullable=False)
 
-	seen_items = db.relationship('SeenItem', backref='seen_item')
+	seen_items:list = db.relationship('SeenItem', backref='seen_item')
 
-	responses = db.relationship('SurveyResponse', secondary=user_response, lazy='subquery',
+	responses:list = db.relationship('SurveyResponse', secondary=user_response, lazy='subquery',
 		backref=db.backref('users', lazy=True))
 
 	def __repr__(self) -> str:
 		return '<User %r>' % self.id
+
 
 class SurveyPage(db.Model):
 	__tablename__ = 'survey_page'
@@ -99,6 +104,7 @@ class SurveyQuestion(db.Model):
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	question_type = db.Column(db.String(36), nullable=False)
 	question_text = db.Column(db.String(144), nullable=False)
+	question_tag = db.Column(db.String(144), nullable=True)
 
 	responses = db.relationship('FreeResponse', backref='question_response', \
 		lazy=True)
@@ -109,76 +115,80 @@ class SurveyQuestion(db.Model):
 		nullable=False)
 
 
+@dataclass
 class SurveyResponse(db.Model):
 	__tablename__ = 'survey_response'
 
-	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	starttime = db.Column(db.DateTime, nullable=False)
-	endtime = db.Column(db.DateTime, nullable=False)
+	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	starttime:datetime = db.Column(db.DateTime, nullable=False)
+	endtime:datetime = db.Column(db.DateTime, nullable=False)
 
-	responses = db.relationship('FreeResponse', backref='free_response')
-	scores = db.relationship('Score', backref='score')
-	ratings = db.relationship('Rating', backref='movie_rating', \
+	responses:list = db.relationship('FreeResponse', backref='free_response')
+	scores:list = db.relationship('Score', backref='score')
+	ratings:list = db.relationship('Rating', backref='movie_rating', \
 		lazy=True)
 
-	user = db.Column(db.Integer, db.ForeignKey('user.id'), \
+	user:int = db.Column(db.Integer, db.ForeignKey('user.id'), \
 		nullable=False)
-	survey_page = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
+	survey_page:int = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
 		nullable=False)
 
 
+@dataclass
 class FreeResponse(db.Model):
 	__tablename__ = 'free_response'
 	
-	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	response_text = db.Column(db.Text)
+	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	response_text:str = db.Column(db.Text)
 
-	question = db.Column(db.Integer, db.ForeignKey('survey_question.id'), \
+	question:int = db.Column(db.Integer, db.ForeignKey('survey_question.id'), \
 		nullable=False)
-	survey_response = db.Column(db.Integer, db.ForeignKey('survey_response.id'), \
+	survey_response:int = db.Column(db.Integer, db.ForeignKey('survey_response.id'), \
 		nullable=False)
 
 
+@dataclass
 class Score(db.Model):
 	__tablename__ = 'score'
 
-	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	score_point = db.Column(db.Integer)
+	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	score_point:int = db.Column(db.Integer)
 
-	question = db.Column(db.Integer, db.ForeignKey('survey_question.id'), \
+	question:int = db.Column(db.Integer, db.ForeignKey('survey_question.id'), \
 		nullable=False)
-	survey_response = db.Column(db.Integer, db.ForeignKey('survey_response.id'), \
+	survey_response:int = db.Column(db.Integer, db.ForeignKey('survey_response.id'), \
 		nullable=False)
 
 
+@dataclass
 class Rating(db.Model):
 	__tablename__ = 'rating'
 
-	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	date_created = db.Column(db.DateTime, nullable=False, \
-		default=datetime.utcnow)
-	item_id = db.Column(db.Integer, nullable=False)
-	rating = db.Column(db.Integer, nullable=False)
+	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	date_created:datetime = db.Column(db.DateTime, nullable=False)
+	item_id:int = db.Column(db.Integer, nullable=False)
+	rating:int = db.Column(db.Integer, nullable=False)
 
-	location = db.Column(db.String(45), nullable=False)
-	level = db.Column(db.Integer, nullable=False)
+	location:str = db.Column(db.String(45), nullable=False)
+	level:int = db.Column(db.Integer, nullable=False)
 
-	survey_response = db.Column(db.Integer, db.ForeignKey('survey_response.id'), \
+	survey_response:int = db.Column(db.Integer, db.ForeignKey('survey_response.id'), \
 		nullable=False)
 
 
+@dataclass
 class SeenItem(db.Model):
 	__tablename__ = 'seen_movies'
 
-	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	item_id = db.Column(db.Integer, nullable=False)
+	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	item_id:int = db.Column(db.Integer, nullable=False)
 
-	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), \
+	user_id:int = db.Column(db.Integer, db.ForeignKey('user.id'), \
 		nullable=False)
-	page = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
+	page:int = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
 		nullable=False)
 	
-	gallerypagenum = db.Column(db.Integer, nullable=False)
+	gallerypagenum:int = db.Column(db.Integer, nullable=False)
 
 
 class UserInteraction(db.Model):
@@ -201,6 +211,41 @@ class ActionTarget(db.Model):
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	target_label = db.Column(db.String(144), nullable=False)
 	target_type = db.Column(db.String(144))
+
+
+class HoverHistory(db.Model):
+	__tablename__ = 'hover_history'
+
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	page_id = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
+		nullable=False)
+
+	item_id = db.Column(db.Integer, nullable=False)
+	level = db.Column(db.Integer, nullable=False)
+
+	location = db.Column(db.String(144))
+
+	timestamp = db.Column(db.DateTime, nullable=False)
+	event_type = db.Column(db.String(81), nullable=False)
+
+
+class RatingHistory(db.Model):
+	__tablelname__ = 'rating_history'
+
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	page_id = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
+		nullable=False)
+
+	item_id = db.Column(db.Integer, nullable=False)
+	level = db.Column(db.Integer, nullable=False)
+
+	location = db.Column(db.String(144))
+
+	timestamp = db.Column(db.DateTime, nullable=False)
+	rating = db.Column(db.Integer, nullable=False)
 
 
 class Demography(db.Model):

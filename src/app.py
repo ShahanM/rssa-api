@@ -12,13 +12,6 @@ Server for running the recommender algorithms. See
 outputs.
 """
 
-# import re
-# import time
-# from ast import Num
-# from pathlib import Path
-# from urllib import response
-# from numpy import deprecate
-
 from flask import Flask, Response, abort, json, render_template, request
 from flask_cors import CORS, cross_origin
 
@@ -26,7 +19,6 @@ from compute.community import get_discrete_continuous_coupled
 from compute.rssa import RSSACompute
 from db_connectors.db import db, initialize_db
 from db_connectors.movie_db import MovieDB
-from db_connectors.new_movie_db import NewMovieDB
 from db_connectors.survey_db import InvalidSurveyException, SurveyDB
 from models import Rating
 from utils.json_utils import RssaJsonEncoder
@@ -40,13 +32,13 @@ movie_db = None
 with open('config.json') as f:
     settings = json.load(f)
 ACTIVITY_BASE = settings['activity_base_path']
-MOVIE_DB = settings['mongo_url']
-NEW_MOVIE_DB = settings['postgres_url']
+# MOVIE_DB = settings['mongo_url']
+MOVIE_DB = settings['postgres_url']
 SURVEY_DB = settings['mysql_url']
 SURVEY_ID = settings['survey_id']
 REDIRECT_URL = settings['study_redirect_url']
 SQLALCHEMY_BINDS = {
-    'postgres': NEW_MOVIE_DB
+    'postgres': MOVIE_DB
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = SURVEY_DB
@@ -55,8 +47,8 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'encoding': 'utf-8'}
 
 survey_db = SurveyDB(initialize_db(app), redirect_url=REDIRECT_URL, \
     activity_base_path=ACTIVITY_BASE)
-new_movie_db = NewMovieDB(db)
-movie_db = MovieDB(MOVIE_DB)
+movie_db = MovieDB(db)
+# movie_db = MovieDB(MOVIE_DB)
 
 rssa = RSSACompute()
 
@@ -90,7 +82,7 @@ def get_discrete_cont_coupled():
 def get_movies_two():
     lim = int(request.args.get('limit'))
     page = int(request.args.get('page'))
-    movies = new_movie_db.get_movies(lim, page)
+    movies = movie_db.get_movies(lim, page)
 
     return Response(json.dumps(movies), mimetype='application/json')
 
@@ -115,17 +107,17 @@ def get_movies_for_user():
             seenflat = []
             for seenpage in seen.values():
                 seenflat.extend(seenpage)
-            movies = new_movie_db.get_movies(lim, gallerypage, seenflat, moviesubset)
-            
+            movies = movie_db.get_movies(lim, gallerypage, seenflat, moviesubset)
+            # TODO FIXME hardcoded limit
             survey_db.update_movies_seen(movies[:lim], userid, surveypageid, \
                 gallerypage)
             survey_db.update_movies_seen(movies[lim:], userid, surveypageid, \
-                gallerypage)
+                gallerypage+1)
 
         else:
             print('This page was already generated, don\'t need to rebuild.')
-            movies = new_movie_db.get_movie_from_list(\
-                [seenitem.id for seenitem in seen[gallerypage]])
+            movies = movie_db.get_movie_from_list(\
+                [seenitem.item_id for seenitem in seen[gallerypage]])
     except KeyError:
         print(req)
         abort(400)
@@ -155,8 +147,8 @@ def predict_preferences():
         condition = survey_db.get_condition_for_user(userid)
         left, right = rssa.get_condition_prediction(ratings, userid, \
             condition.id-1, item_count)
-        leftitems = new_movie_db.get_movie_from_list(movieids=left, api=moviesubset)
-        rightitems = new_movie_db.get_movie_from_list(movieids=right, api=moviesubset)
+        leftitems = movie_db.get_movie_from_list(movieids=left, api=moviesubset)
+        rightitems = movie_db.get_movie_from_list(movieids=right, api=moviesubset)
 
         prediction = {
             # topN
@@ -272,49 +264,6 @@ def get_completion_code():
         abort(400)
 
     return dict({'redirect_url': redirect_url})
-
-
-# @deprecate
-# @app.route('/movies', methods=['POST'])
-# @cross_origin(supports_credentials=True)
-# def get_movie_from_ids():
-#     req = json.loads(request.data)
-#     idlst = req['movie_ids']
-
-#     movies = movie_db.get_movie_lst(idlist=idlst)
-#     return Response(jsonify(movies), mimetype='application/json')
-
-
-# @deprecate
-# @app.route('/rssa_compute_test', methods=['POST'])
-# @cross_origin(supports_credentials=True)
-# def rssa_test():
-#     start_time = time.time()
-#     req = json.loads(request.data)
-#     item_count = 7
-#     try:
-#         userid = req['userid']
-#         ratings = req['ratings']
-#         ratings = [Rating(**rating) for rating in ratings]
-#         prediction = rssa.predict_user_controversial_items(ratings=ratings, \
-#             user_id=userid, numRec=item_count)
-#         print("--- %s seconds ---" % (time.time() - start_time))
-#     except KeyError:
-#         abort(400)
-
-#     return dict({'exec_time': time.time() - start_time, \
-#         'recommendations': prediction})
-
-
-# @deprecate
-# @app.route('/movies', methods=['GET'])
-# @cross_origin(supports_credentials=True)
-# def get_movies():
-#     lim = int(request.args.get("limit"))
-#     page = int(request.args.get("page"))
-#     movies = movie_db.skiplimit(lim, page)
-
-#     return Response(json.dumps(movies), mimetype='application/json')
 
 
 """ TODO

@@ -30,6 +30,7 @@ class Rating:
     rating: Literal[1,2,3,4,5]
     loc: str
     level: int
+    rating_date:str
 
 
 @dataclass

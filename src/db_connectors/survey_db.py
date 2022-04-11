@@ -6,8 +6,7 @@ import re
 from MySQLdb import Timestamp
 from flask import request, json
 
-from .models.survey import FreeResponse, PlatformSession, SeenItem, Survey, SurveyQuestion, SurveyResponse, User, \
-	Rating, Score, Condition, Demography, RequestLog
+from .models.survey import *
 
 
 class InvalidSurveyException(Exception):
@@ -93,18 +92,45 @@ class SurveyDB(object):
 			starttime=self.parse_datetime(starttime), endtime=self.parse_datetime(endtime))
 		self.db.session.add(survey_response)
 		self.db.session.flush()
-
 		if 'ratings' in response_params:
 			itemsids = [item.item_id for item in survey_response.ratings]
 			for itemrating in response_params['ratings']:
 				itemid = itemrating['item_id']
+				rating_date = self.parse_datetime(itemrating['rating_date'])
 				rating = itemrating['rating']
 				location = itemrating['loc']
 				level = itemrating['level']
 				if itemid not in itemsids:
 					survey_response.ratings.append(Rating(survey_response=survey_response.id, \
-						item_id=itemid, rating=rating, location=location, \
-						level=level))
+						item_id=itemid, date_created=rating_date, rating=rating, \
+						location=location, level=level))
+			rating_history = []
+			for rating_event in response_params['rating_history']:
+				rhist_item = rating_event['item_id']
+				rhist_rate = rating_event['rating']
+				rhist_date = self.parse_datetime(rating_event['rating_date'])
+				rhist_loc = rating_event['loc']
+				rhist_leve = rating_event['level']
+				rhist_event = RatingHistory(user_id=user_id, page_id=survey_pageid, \
+					item_id=rhist_item, rating=rhist_rate, location=rhist_loc, \
+					timestamp=rhist_date, level=rhist_leve)
+				rating_history.append(rhist_event)
+			self.db.session.add_all(rating_history)
+
+			hover_history = []
+			hover_events = response_params['hover_history']
+			for hover_event in response_params['hover_history']:
+				hhist_item = hover_event['item_id']
+				hhist_actn = hover_event['action']
+				hhist_time = self.parse_datetime(hover_event['time'])
+				hhist_loc = hover_event['loc']
+				hhist_leve = hover_event['level']
+				hhist_event = HoverHistory(user_id=user_id, page_id=survey_pageid, \
+					item_id=hhist_item, location=hhist_loc, \
+					timestamp=hhist_time, event_type=hhist_actn, \
+					level=hhist_leve)
+				hover_history.append(hhist_event)
+			self.db.session.add_all(hover_history)
 
 		if 'pick' in response_params:
 			itemid = response_params['pick']
