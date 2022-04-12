@@ -11,6 +11,7 @@ class Survey(db.Model):
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	title = db.Column(db.String(50), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 	survey_users = db.relationship('User', backref='survey', \
 		lazy=True)
@@ -38,12 +39,15 @@ class Condition(db.Model):
 	__tablename__ = 'study_condition'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id:int = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	cond_tag = db.Column(db.String(144), nullable=False)
 	cond_act = db.Column(db.String(144), nullable=False)
 	cond_exp = db.Column(db.Text, nullable=True)
 
-	participant = db.relationship('User', secondary=user_condition, \
-		backref=db.backref('user'))
+	participants = db.relationship('User', secondary=user_condition, \
+		lazy='subquery', backref=db.backref('user'))
 
 
 @dataclass
@@ -51,11 +55,11 @@ class User(db.Model):
 	__tablename__ = 'user'
 	salt = 144
 
-	survey_id:int = db.Column(db.Integer, db.ForeignKey('survey.id'), \
-		nullable=False)
-
+	survey_id:int = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
 	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	date_created = db.Column(db.DateTime, nullable=False, \
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+	timestamp = db.Column(db.DateTime, nullable=False, \
 		default=datetime.utcnow)
 
 	condition:int = db.Column(db.Integer, db.ForeignKey('study_condition.id'), \
@@ -73,12 +77,10 @@ class User(db.Model):
 class SurveyPage(db.Model):
 	__tablename__ = 'survey_page'
 
-	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), \
-		nullable=False)
-
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	
-	# TODO add database level validation to avoid ordering conflict
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	page_num = db.Column(db.Integer, nullable=False)
 
 	page_title = db.Column(db.String(144), nullable=False)
@@ -102,6 +104,9 @@ class SurveyQuestion(db.Model):
 	__tablename__ = 'survey_question'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	question_type = db.Column(db.String(36), nullable=False)
 	question_text = db.Column(db.String(144), nullable=False)
 	question_tag = db.Column(db.String(144), nullable=True)
@@ -120,6 +125,9 @@ class SurveyResponse(db.Model):
 	__tablename__ = 'survey_response'
 
 	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	starttime:datetime = db.Column(db.DateTime, nullable=False)
 	endtime:datetime = db.Column(db.DateTime, nullable=False)
 
@@ -139,6 +147,10 @@ class FreeResponse(db.Model):
 	__tablename__ = 'free_response'
 	
 	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id:int = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	user_id:int = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	response_text:str = db.Column(db.Text)
 
 	question:int = db.Column(db.Integer, db.ForeignKey('survey_question.id'), \
@@ -152,6 +164,10 @@ class Score(db.Model):
 	__tablename__ = 'score'
 
 	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	user_id:int = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	score_point:int = db.Column(db.Integer)
 
 	question:int = db.Column(db.Integer, db.ForeignKey('survey_question.id'), \
@@ -165,6 +181,10 @@ class Rating(db.Model):
 	__tablename__ = 'rating'
 
 	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	user_id:int = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	date_created:datetime = db.Column(db.DateTime, nullable=False)
 	item_id:int = db.Column(db.Integer, nullable=False)
 	rating:int = db.Column(db.Integer, nullable=False)
@@ -181,6 +201,9 @@ class SeenItem(db.Model):
 	__tablename__ = 'seen_movies'
 
 	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	item_id:int = db.Column(db.Integer, nullable=False)
 
 	user_id:int = db.Column(db.Integer, db.ForeignKey('user.id'), \
@@ -195,7 +218,10 @@ class UserInteraction(db.Model):
 	__tablename__ = 'user_interaction'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	page_id = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
 		nullable=False)
 	action_type = db.Column(db.String(144), nullable=False)
@@ -209,6 +235,8 @@ class ActionTarget(db.Model):
 	__tablename__ = 'action_target'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	target_label = db.Column(db.String(144), nullable=False)
 	target_type = db.Column(db.String(144))
 
@@ -217,7 +245,10 @@ class HoverHistory(db.Model):
 	__tablename__ = 'hover_history'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	page_id = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
 		nullable=False)
 
@@ -234,8 +265,10 @@ class RatingHistory(db.Model):
 	__tablelname__ = 'rating_history'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)	
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+	
 	page_id = db.Column(db.Integer, db.ForeignKey('survey_page.id'), \
 		nullable=False)
 
@@ -252,21 +285,26 @@ class Demography(db.Model):
 	__tablename__ = 'demography'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 	age = db.Column(db.Integer, nullable=False)
 	race = db.Column(db.String(144), nullable=False)
 	gender = db.Column(db.Integer, nullable=False)
 	country = db.Column(db.String(81), nullable=False)
 	education = db.Column(db.Integer, nullable=False)
 
-	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
 
 class RequestLog(db.Model):
 	__tablename__ = 'request_log'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	timestamp = db.Column(db.DateTime, nullable=False)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+	timestamp = db.Column(db.DateTime, nullable=False)
 	rawheader = db.Column(db.Text, nullable=False)
 	useragent = db.Column(db.Text, nullable=False)
 	origin = db.Column(db.String(144), nullable=False)
@@ -274,20 +312,19 @@ class RequestLog(db.Model):
 
 	endpoint = db.Column(db.String(144), nullable=False)
 
-	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
 
 
 class PlatformSession(db.Model):
 	__tablename__ = 'platform_session'
 
 	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-	timestamp = db.Column(db.DateTime, nullable=False)
+	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+	date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+	timestamp = db.Column(db.DateTime, nullable=False)
 	platform_type = db.Column(db.String(144), nullable=False)
 	platform_id = db.Column(db.String(144), nullable=False)
 	study_id = db.Column(db.String(144), nullable=False)
 	session_id = db.Column(db.String(144), nullable=False)
 
-	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-	survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=False)

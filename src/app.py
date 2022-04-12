@@ -253,8 +253,12 @@ def get_completion_code():
         page_id = req['pageid']
         user_id = req['userid']
         requesttime = req['requestime']
-        completed = req['completed']
-
+        page_starttime = req['starttime']
+        response_params = req['response']
+        completed = response_params['completed']
+        user_id = survey_db.add_survey_reponse(user_id=user_id, \
+            survey_pageid=page_id, starttime=page_starttime, \
+                endtime=requesttime, response_params=response_params)
         redirect_url = survey_db.get_redirect_url(user_id=user_id, \
             survey_pageid=page_id, requesttime=requesttime, \
                 completed=completed)
