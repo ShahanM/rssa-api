@@ -6,6 +6,7 @@ import re
 from MySQLdb import Timestamp
 from flask import request, json
 from sqlalchemy import and_
+from random import randrange
 
 from .models.survey import *
 
@@ -46,13 +47,13 @@ class SurveyDB(object):
 	def create_user(self, welcome_time, consent_start_time, consent_end_time, platform_info):
 		survey_pages = self._get_survey_pages()
 
-		conditionPicker = ConditionPicker()
-
+		# conditionPicker = ConditionPicker()
+		# condition = randrange(5)+1
+		prevuser = User.query.order_by(User.id.desc()).first()
 		user = User(survey_id=self.survey_id, \
-			condition=conditionPicker.get_condition_index())
+			condition=prevuser.condition + 1)
 		self.db.session.add(user)
 		self.db.session.flush()
-
 
 		user_response = []
 
