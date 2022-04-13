@@ -49,9 +49,10 @@ class SurveyDB(object):
 
 		# conditionPicker = ConditionPicker()
 		# condition = randrange(5)+1
-		prevuser = User.query.order_by(User.id.desc()).first()
+		prevcond = User.query.order_by(User.id.desc()).first().condition
+		condition = 1 if prevcond == 5 else prevcond + 1
 		user = User(survey_id=self.survey_id, \
-			condition=prevuser.condition + 1)
+			condition=prevcond)
 		self.db.session.add(user)
 		self.db.session.flush()
 
