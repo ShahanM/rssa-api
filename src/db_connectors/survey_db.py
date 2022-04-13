@@ -52,7 +52,7 @@ class SurveyDB(object):
 		prevcond = User.query.order_by(User.id.desc()).first().condition
 		condition = 1 if prevcond == 5 else prevcond + 1
 		user = User(survey_id=self.survey_id, \
-			condition=prevcond)
+			condition=condition)
 		self.db.session.add(user)
 		self.db.session.flush()
 
