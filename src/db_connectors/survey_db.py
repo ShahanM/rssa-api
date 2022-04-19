@@ -202,20 +202,23 @@ class SurveyDB(object):
 				question = self._get_question_or_create(survey_page=survey_page, \
 					text='Self identifying gender.')
 				free_res = FreeResponse(response_text=textgen, question=question.id, \
-					survey_response=survey_response.id, survey_id=self.survey_id)
+					survey_response=survey_response.id, survey_id=self.survey_id, \
+					user_id=user.id)
 			textrac = dem['textrac']
 			if len(textrac) > 1:
 				question = self._get_question_or_create(survey_page=survey_page, \
 					text='Self identifying race.')
 				free_res = FreeResponse(response_text=textrac, question=question.id, \
-					survey_response=survey_response.id, survey_id=self.survey_id)
+					survey_response=survey_response.id, survey_id=self.survey_id, \
+					user_id=user.id)
 			self.db.session.add(demo)
 		
 		if 'completed' in response_params:
 			question = self._get_question_or_create(survey_page=survey_page, \
 				text='Survey Completion Placeholder.')
 			free_res = FreeResponse(response_text=str(response_params['completed']), \
-				question=question.id, survey_response=survey_response.id, survey_id=self.survey_id)
+				question=question.id, survey_response=survey_response.id, \
+				survey_id=self.survey_id, user_id=user.id)
 
 		user.responses.append(survey_response)
 		self.db.session.commit()
