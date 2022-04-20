@@ -59,7 +59,6 @@ class MovieDB(object):
 		for i in range(num_pages):
 			page_num += i
 			page_num = 5 if page_num > 5 else page_num
-			print(seen)
 			items_to_send.extend(self._generate_page(lim, \
 				sampling_weights=page_dist[page_num], seen=seen, \
 					pagenum=page_num, ers=ers))
@@ -71,7 +70,7 @@ class MovieDB(object):
 		page_items = set()
 		seen = set(seen)
 		idxmap = self.iers_movie_idx_dict if ers else self.movie_idx_dict
-		print(idxmap.keys())
+		
 		print('Building page for user')
 		for group, count in enumerate(sampling_weights, 1):
 			if count == 0: continue
