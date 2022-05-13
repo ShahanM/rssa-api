@@ -69,7 +69,7 @@ def get_discrete_cont_coupled():
     data = get_discrete_continuous_coupled()
     
     dictdata = {movie['item_id']: movie for movie in data}
-    moviedata = movie_db.get_movie_lst(idlist=list(dictdata.keys()))
+    moviedata = movie_db.get_movie_from_list(idlist=list(dictdata.keys()))
     for movie in moviedata:
         dictdata[movie['movie_id']]['poster'] = movie['poster']
 
