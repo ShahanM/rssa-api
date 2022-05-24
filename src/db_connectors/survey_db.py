@@ -328,8 +328,10 @@ class SurveyDB(object):
 			userid = json.loads((req.get_data()))['userid']
 		rawheader = req.headers
 		useragent = req.headers['User-Agent']
-		origin = req.headers['Origin']
-		referer = req.headers['Referer']
+		# origin = req.headers['Origin']
+		origin = 'deprecated'
+		# referer = req.headers['Referer']
+		referer = 'deprecated'
 		endpoint = req.full_path
 		reqlog = RequestLog(timestamp=datetime.now(), rawheader=rawheader, \
 			useragent=useragent, origin=origin, referer=referer, endpoint=endpoint,\

@@ -71,7 +71,10 @@ def get_discrete_cont_coupled():
     dictdata = {movie['item_id']: movie for movie in data}
     moviedata = movie_db.get_movie_from_list(movieids=list(dictdata.keys()))
     for movie in moviedata:
+        # print(movie)
         dictdata[movie['movie_id']]['poster'] = movie['poster']
+        dictdata[movie['movie_id']]['title'] = movie['title']
+        dictdata[movie['movie_id']]['description'] = movie['description']
 
     data = list(dictdata.values())
     return Response(json.dumps(data), mimetype='application/json')
