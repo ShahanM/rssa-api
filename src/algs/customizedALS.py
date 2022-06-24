@@ -9,7 +9,7 @@ from lenskit.algorithms.bias import Bias
 #from .mf_common import MFPredictor
 from lenskit.algorithms.mf_common import MFPredictor
 #from ..matrix import sparse_ratings
-from lenskit.matrix import sparse_ratings
+from lenskit.data import sparse_ratings
 #from .. import util
 from lenskit import util
 #from ..math.solve import _dposv

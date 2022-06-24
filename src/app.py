@@ -177,6 +177,35 @@ def predict_preferences():
 
 
 """ TODO
+    Wrap this into to a restful Recommendation resource
+    POST -> return recommendations for a userid and list of movie ratings
+"""
+@app.route('/ersrecommendations', methods=['POST'])
+@cross_origin(supports_credentials=True)
+def predict_emotional():
+    req = json.loads(request.data)
+
+    try:
+        userid = req['userid']
+        ratings = req['ratings']
+        ratings = [Rating(**rating) for rating in ratings]
+
+        item_count = req['count']
+        moviesubset = 'ers'
+        if 'subset' in req:
+            moviesubset = req['subset']
+
+        left, right = rssa.get_condition_prediction(ratings, userid, \
+            0, item_count)
+        items = movie_db.get_movie_from_list(movieids=left+right, api=moviesubset)
+
+    except KeyError:
+        abort(400)
+
+    return dict(recommendations=items)
+
+
+""" TODO
     Wrap this into a restful User resource
     POST -> create a new user at the beginning of the survey
     PUT  -> Update entries as a user progresses through the survey

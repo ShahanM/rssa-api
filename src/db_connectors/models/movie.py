@@ -64,6 +64,7 @@ class MovieEmotions(db.Model):
 	disgust:float = db.Column(db.Numeric, nullable=False)
 	fear:float = db.Column(db.Numeric, nullable=False)
 	joy:float = db.Column(db.Numeric, nullable=False)
+	surprise:float = db.Column(db.Numeric, nullable=False)
 	sadness:float = db.Column(db.Numeric, nullable=False)
 	trust:float = db.Column(db.Numeric, nullable=False)
 	iers_count:int = db.Column(db.Integer, nullable=False)
