@@ -3,7 +3,7 @@ import hashlib
 from pathlib import Path
 from collections import defaultdict
 import re
-from MySQLdb import Timestamp
+# from MySQLdb import Timestamp
 from flask import request, json
 from sqlalchemy import and_
 from random import randrange
@@ -44,15 +44,16 @@ class SurveyDB(object):
 			raise InvalidSurveyException
 		return list(sorted(survey.survey_pages, key=lambda page: page.page_num))
 
-	def create_user(self, welcome_time, consent_start_time, consent_end_time, platform_info):
+	def create_user(self, welcome_time, consent_start_time, consent_end_time, user_type, platform_info):
 		survey_pages = self._get_survey_pages()
+		user_type = UserType.query.filter_by(type_str=user_type).first()
 
 		# conditionPicker = ConditionPicker()
 		# condition = randrange(5)+1
 		prevcond = User.query.order_by(User.id.desc()).first().condition
 		condition = 1 if prevcond == 5 else prevcond + 1
 		user = User(survey_id=self.survey_id, \
-			condition=condition)
+			condition=condition, user_type=user_type.id)
 		self.db.session.add(user)
 		self.db.session.flush()
 
@@ -323,6 +324,7 @@ class SurveyDB(object):
 
 	def log_request(self, req:request):
 		userid = None
+		print(req.headers)
 
 		if 'userid' in str(req.get_data()):
 			userid = json.loads((req.get_data()))['userid']
@@ -339,6 +341,7 @@ class SurveyDB(object):
 		
 		self.db.session.add(reqlog)
 		self.db.session.commit()
+
 
 	def add_platform_session(self, platform_info:dict, userid:int=None):
 		platform_type = 'Prolific'
@@ -377,4 +380,3 @@ class SurveyMeta(object):
 		This class allows endpoints to create Surveys, SurveyPages and Questions
 	'''
 	pass
-

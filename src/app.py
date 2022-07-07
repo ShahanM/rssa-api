@@ -32,7 +32,6 @@ movie_db = None
 with open('config.json') as f:
     settings = json.load(f)
 ACTIVITY_BASE = settings['activity_base_path']
-# MOVIE_DB = settings['mongo_url']
 MOVIE_DB = settings['postgres_url']
 SURVEY_DB = settings['mysql_url']
 SURVEY_ID = settings['survey_id']
@@ -45,17 +44,16 @@ app.config['SQLALCHEMY_DATABASE_URI'] = SURVEY_DB
 app.config['SQLALCHEMY_BINDS'] = SQLALCHEMY_BINDS
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'encoding': 'utf-8'}
 
-survey_db = SurveyDB(initialize_db(app), redirect_url=REDIRECT_URL, \
-    activity_base_path=ACTIVITY_BASE)
+survey_db = SurveyDB(initialize_db(app), redirect_url=REDIRECT_URL,
+                    activity_base_path=ACTIVITY_BASE)
 movie_db = MovieDB(db)
-# movie_db = MovieDB(MOVIE_DB)
 
 rssa = RSSACompute()
 
 
-@app.before_request
-def before_request_callback():
-    survey_db.log_request(request)
+# @app.before_request
+# def before_request_callback():
+#     survey_db.log_request(request)
 
 
 @app.route('/')
@@ -67,11 +65,10 @@ def show_readme():
 @cross_origin(supports_credentials=True)
 def get_discrete_cont_coupled():
     data = get_discrete_continuous_coupled()
-    
+
     dictdata = {movie['item_id']: movie for movie in data}
     moviedata = movie_db.get_movie_from_list(movieids=list(dictdata.keys()))
     for movie in moviedata:
-        # print(movie)
         dictdata[movie['movie_id']]['poster'] = movie['poster']
         dictdata[movie['movie_id']]['title'] = movie['title']
         dictdata[movie['movie_id']]['description'] = movie['description']
@@ -80,7 +77,7 @@ def get_discrete_cont_coupled():
     return Response(json.dumps(data), mimetype='application/json')
 
 
-@app.route('/new_movies', methods=['GET'])
+@app.route('/movies', methods=['GET'])
 @cross_origin(supports_credentials=True)
 def get_movies_two():
     lim = int(request.args.get('limit'))
@@ -90,7 +87,7 @@ def get_movies_two():
     return Response(json.dumps(movies), mimetype='application/json')
 
 
-@app.route('/new_movies', methods=['POST'])
+@app.route('/movies', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def get_movies_for_user():
     req = json.loads(request.data)
@@ -110,16 +107,16 @@ def get_movies_for_user():
             seenflat = []
             for seenpage in seen.values():
                 seenflat.extend(seenpage)
-            movies = movie_db.get_movies(lim, gallerypage, seenflat, moviesubset)
-            # TODO FIXME hardcoded limit
-            survey_db.update_movies_seen(movies[:lim], userid, surveypageid, \
-                gallerypage)
-            survey_db.update_movies_seen(movies[lim:], userid, surveypageid, \
-                gallerypage+1)
+            movies = movie_db.get_movies(
+                lim, gallerypage, seenflat, moviesubset)
+            survey_db.update_movies_seen(movies[:lim], userid, surveypageid,
+                                        gallerypage)
+            survey_db.update_movies_seen(movies[lim:], userid, surveypageid,
+                                        gallerypage+1)
 
         else:
             print('This page was already generated, don\'t need to rebuild.')
-            movies = movie_db.get_movie_from_list(\
+            movies = movie_db.get_movie_from_list(
                 [seenitem.item_id for seenitem in seen[gallerypage]])
     except KeyError:
         print(req)
@@ -148,10 +145,12 @@ def predict_preferences():
             moviesubset = req['subset']
 
         condition = survey_db.get_condition_for_user(userid)
-        left, right = rssa.get_condition_prediction(ratings, userid, \
-            condition.id-1, item_count)
-        leftitems = movie_db.get_movie_from_list(movieids=left, api=moviesubset)
-        rightitems = movie_db.get_movie_from_list(movieids=right, api=moviesubset)
+        left, right = rssa.get_condition_prediction(ratings, userid,
+                                                    condition.id-1, item_count)
+        leftitems = movie_db.get_movie_from_list(
+            movieids=left, api=moviesubset)
+        rightitems = movie_db.get_movie_from_list(
+            movieids=right, api=moviesubset)
 
         prediction = {
             # topN
@@ -180,6 +179,8 @@ def predict_preferences():
     Wrap this into to a restful Recommendation resource
     POST -> return recommendations for a userid and list of movie ratings
 """
+
+
 @app.route('/ersrecommendations', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def predict_emotional():
@@ -195,9 +196,10 @@ def predict_emotional():
         if 'subset' in req:
             moviesubset = req['subset']
 
-        left, right = rssa.get_condition_prediction(ratings, userid, \
-            0, item_count)
-        items = movie_db.get_movie_from_list(movieids=left+right, api=moviesubset)
+        left, right = rssa.get_condition_prediction(ratings, userid,
+                                                    0, item_count)
+        items = movie_db.get_movie_from_list(
+            movieids=left+right, api=moviesubset)
 
     except KeyError:
         abort(400)
@@ -210,6 +212,8 @@ def predict_emotional():
     POST -> create a new user at the beginning of the survey
     PUT  -> Update entries as a user progresses through the survey
 """
+
+
 @app.route('/new_user', methods=['POST'])
 @cross_origin()
 def create_new_user():
@@ -220,9 +224,10 @@ def create_new_user():
         welcome_time = req['welcomeTime']
         consent_start_time = req['consentStartTime']
         consent_end_time = req['consentEndTime']
+        user_type = req['userType']
         platform_info = req['platformInfo']
-        user_id = survey_db.create_user(welcome_time, consent_start_time, \
-            consent_end_time, platform_info)
+        user_id = survey_db.create_user(welcome_time, consent_start_time,
+                                        consent_end_time, user_type, platform_info)
     except KeyError:
         abort(400)
 
@@ -243,13 +248,12 @@ def update_survey():
 
         response_params = req['response']
 
-        user_id = survey_db.add_survey_reponse(user_id=user_id, \
-            survey_pageid=page_id, starttime=page_starttime, \
-                endtime=page_endtime, response_params=response_params)
+        user_id = survey_db.add_survey_reponse(user_id=user_id,
+                                            survey_pageid=page_id, starttime=page_starttime,
+                                            endtime=page_endtime, response_params=response_params)
     except KeyError as e:
         print(e)
         abort(400)
-
 
     return dict({'Success': True, 'user_id': str(user_id)})
 
@@ -267,8 +271,8 @@ def sync_mouse_movement():
         page_width = req['pageWidth']
         page_height = req['pageHeight']
 
-        survey_db.sync_activity(userid, page_width, page_height, pageid, \
-            activity)
+        survey_db.sync_activity(userid, page_width, page_height, pageid,
+                                activity)
     except KeyError as e:
         abort(400)
 
@@ -278,7 +282,7 @@ def sync_mouse_movement():
 @app.route('/redirect', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def get_completion_code():
-    
+
     req = json.loads(request.data)
 
     try:
@@ -288,12 +292,12 @@ def get_completion_code():
         page_starttime = req['starttime']
         response_params = req['response']
         completed = response_params['completed']
-        user_id = survey_db.add_survey_reponse(user_id=user_id, \
-            survey_pageid=page_id, starttime=page_starttime, \
-                endtime=requesttime, response_params=response_params)
-        redirect_url = survey_db.get_redirect_url(user_id=user_id, \
-            survey_pageid=page_id, requesttime=requesttime, \
-                completed=completed)
+        user_id = survey_db.add_survey_reponse(user_id=user_id,
+                                            survey_pageid=page_id, starttime=page_starttime,
+                                            endtime=requesttime, response_params=response_params)
+        redirect_url = survey_db.get_redirect_url(user_id=user_id,
+												survey_pageid=page_id, requesttime=requesttime,
+                                                completed=completed)
 
     except KeyError as e:
         print(e)
@@ -321,6 +325,8 @@ def create_new_survey():
     POST -> New survey page for a given survey id
     GET  -> return a list of survey pages for a given survey id
 """
+
+
 @app.route('/new_survey_page', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def create_new_page():

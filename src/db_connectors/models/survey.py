@@ -65,6 +65,8 @@ class User(db.Model):
 	condition:int = db.Column(db.Integer, db.ForeignKey('study_condition.id'), \
 		nullable=False)
 
+	user_type:int = db.Column(db.Integer, nullable=False)
+
 	seen_items:list = db.relationship('SeenItem', backref='seen_item')
 
 	responses:list = db.relationship('SurveyResponse', secondary=user_response, lazy='subquery',
@@ -72,6 +74,17 @@ class User(db.Model):
 
 	def __repr__(self) -> str:
 		return '<User %r>' % self.id
+
+@dataclass
+class UserType(db.Model):
+	__tablename__ = 'user_type'
+
+	id:int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+	type_str:str = db.Column(db.String(144), nullable=False)
+
+	def __repr__(self) -> str:
+		return '<UserType %r>' % self.id
 
 
 class SurveyPage(db.Model):
