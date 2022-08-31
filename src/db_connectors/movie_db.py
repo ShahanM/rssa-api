@@ -51,8 +51,10 @@ class MovieDB(object):
 		}
 
 		ers = api == 'ers'
-		seen = [item.item_id for item in seen]
-		seen = tuple() if seen is None else tuple(seen)
+		if seen is None:
+			seen = tuple()
+		else:
+			seen = tuple([item.item_id for item in seen])
 
 		items_to_send = []
 		num_pages = int(lim/sum(page_dist[1]))
